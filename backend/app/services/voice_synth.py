@@ -163,8 +163,6 @@ def _openai_synthesize(text: str, region: Region, voice_id: str, instructions: s
             model=settings.openai_tts_model,
             voice=voice_id,
             input=text,
-            # openai==1.51.2 predates the typed `instructions` argument, but
-            # supports forwarding current API fields through `extra_body`.
             extra_body={"instructions": instructions},
             response_format="mp3",
         )

@@ -817,3 +817,576 @@ button:disabled {
   }
   .upload-story-card { align-items: flex-start; }
 }
+
+/* ---------- Pocket FM visual refresh ---------- */
+:root {
+  --canvas: #070708;
+  --surface: #111113;
+  --surface-raised: #18181b;
+  --border: #29292d;
+  --text-primary: #f5f5f6;
+  --text-secondary: #8d8d93;
+  --green-accent: #ed174f;
+  --purple-accent: #ed174f;
+  --cta-gradient: linear-gradient(135deg, #f31352 0%, #d90843 100%);
+  --cta-solid: #ed174f;
+}
+
+body {
+  background:
+    radial-gradient(circle at 84% -12%, rgba(237, 23, 79, 0.08), transparent 30%),
+    var(--canvas);
+}
+
+button,
+select,
+textarea,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-color: #ff3b6c;
+}
+
+/* Header mirrors the compact Pocket FM web chrome. */
+.app-header {
+  gap: 40px;
+  min-height: 72px;
+  padding: 14px clamp(22px, 4vw, 68px);
+  border-bottom-color: #202024;
+  background: rgba(7, 7, 8, 0.94);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  gap: 11px;
+}
+
+.brand-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px 10px 10px 3px;
+  background: var(--cta-solid);
+  box-shadow: 0 8px 24px rgba(237, 23, 79, 0.25);
+  position: relative;
+}
+
+.brand-dot::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.brand-primary {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand-secondary {
+  margin-top: 2px;
+  font-size: 0.67rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.search-bar {
+  max-width: 680px;
+  min-height: 44px;
+  border-color: #3a3a3e;
+  border-radius: 999px;
+  background: #1a1a1c;
+  padding-inline: 17px;
+}
+
+.search-bar:focus-within {
+  border-color: #68686e;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.035);
+}
+
+.search-bar input::placeholder {
+  color: #77777e;
+}
+
+.header-meta {
+  gap: 22px;
+}
+
+.coin-pill,
+.user-pill {
+  color: #a6a6ac;
+  font-size: 0.78rem;
+}
+
+/* Library uses a wide, cover-led catalogue like Pocket FM. */
+.library-body {
+  max-width: 1440px;
+  padding: 28px clamp(22px, 4vw, 68px) 80px;
+}
+
+.upload-story-card {
+  min-height: 112px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  border: 1px solid #29292d;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(237, 23, 79, 0.1), transparent 38%),
+    #101012;
+  box-shadow: inset 3px 0 0 var(--cta-solid);
+}
+
+.upload-story-card .featured-tag {
+  color: #ff6a8f;
+  border-color: rgba(237, 23, 79, 0.36);
+  background: rgba(237, 23, 79, 0.1);
+}
+
+.upload-story-card h2 {
+  font-size: 1.1rem;
+  letter-spacing: -0.015em;
+}
+
+.upload-story-button {
+  min-height: 42px;
+  padding: 10px 20px;
+  border: 1px solid #f0f0f2;
+  border-radius: 999px;
+  background: #f2f2f3;
+  color: #111113;
+  font-size: 0.8rem;
+  transition: transform 150ms ease, background 150ms ease;
+}
+
+.upload-story-button:hover {
+  transform: translateY(-1px);
+  background: white;
+}
+
+.featured-card {
+  min-height: 330px;
+  padding: 56px clamp(28px, 5vw, 72px);
+  margin-bottom: 38px;
+  border: 1px solid #242428;
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, #08090a 0%, rgba(8, 9, 10, 0.96) 34%, rgba(8, 9, 10, 0.36) 67%, #08090a 100%),
+    radial-gradient(circle at 78% 45%, rgba(237, 23, 79, 0.54), transparent 23%),
+    linear-gradient(135deg, #15192a, #522033 60%, #e07048);
+  isolation: isolate;
+}
+
+.featured-card::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 340px;
+  height: 340px;
+  right: 9%;
+  top: -16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50% 50% 42% 58%;
+  background:
+    radial-gradient(circle at 48% 28%, rgba(255,255,255,0.14) 0 3%, transparent 4%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(237, 23, 79, 0.18) 45%, rgba(0, 0, 0, 0.2));
+  filter: blur(0.2px);
+  transform: rotate(-8deg);
+}
+
+.featured-card::after {
+  content: 'POCKET ORIGINAL';
+  position: absolute;
+  right: clamp(26px, 6vw, 90px);
+  bottom: 34px;
+  color: rgba(255, 255, 255, 0.16);
+  font-size: clamp(1.5rem, 3vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.featured-card .featured-tag {
+  margin-bottom: 18px;
+  border: 0;
+  border-radius: 3px;
+  color: white;
+  background: var(--cta-solid);
+  padding: 5px 9px;
+}
+
+.featured-card h2 {
+  max-width: 540px;
+  margin-bottom: 10px;
+  font-size: clamp(2rem, 4vw, 3.45rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+}
+
+.featured-meta {
+  color: #b6b6bb;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.featured-quote {
+  max-width: 52ch;
+  color: #a5a5aa;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.trending-heading {
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #202024;
+}
+
+.trending-heading h3 {
+  font-size: 1.08rem;
+  letter-spacing: -0.02em;
+}
+
+.genre-filters {
+  gap: 6px;
+}
+
+.genre-chip {
+  border-color: transparent;
+  border-radius: 6px;
+  background: transparent;
+  padding: 6px 11px;
+  color: #83838a;
+}
+
+.genre-chip:hover {
+  color: #d7d7da;
+  background: #171719;
+}
+
+.genre-chip.active {
+  border-color: rgba(237, 23, 79, 0.4);
+  color: #ff5b84;
+  background: rgba(237, 23, 79, 0.1);
+}
+
+.story-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(14px, 1.6vw, 24px);
+}
+
+.story-card {
+  position: relative;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  overflow: visible;
+}
+
+.story-card:hover {
+  transform: translateY(-5px);
+  border-color: transparent;
+}
+
+.story-card-bar {
+  position: absolute;
+  z-index: 2;
+  top: 9px;
+  right: -5px;
+  width: auto;
+  height: auto;
+  padding: 4px 7px;
+  border-radius: 3px 0 0 3px;
+  background: var(--cta-solid);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+}
+
+.story-card-bar::after {
+  content: 'NEW';
+  color: white;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.story-card-thumb {
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border: 1px solid #2b2b2f;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.92);
+  background:
+    linear-gradient(180deg, transparent 42%, rgba(0, 0, 0, 0.78) 100%),
+    radial-gradient(circle at 68% 27%, rgba(255, 255, 255, 0.16), transparent 14%),
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 42%, #141419), #111116 56%, #3b1725);
+  font-size: clamp(1.35rem, 2.2vw, 2.25rem);
+  font-weight: 900;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.6);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.story-card:hover .story-card-thumb {
+  border-color: #55555b;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.46);
+}
+
+.story-card-title {
+  width: 100%;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #dedee1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-card-genre {
+  color: #7f7f86;
+  font-size: 0.69rem;
+}
+
+/* Buttons follow Pocket FM's strong primary + quiet secondary hierarchy. */
+.cta-gradient,
+.cta-solid {
+  min-height: 42px;
+  border-radius: 999px;
+  padding-inline: 22px;
+  font-size: 0.82rem;
+  transition: transform 150ms ease, filter 150ms ease, border-color 150ms ease;
+}
+
+.cta-gradient:hover,
+.cta-solid:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.cta-gradient {
+  box-shadow: 0 8px 24px rgba(237, 23, 79, 0.22);
+}
+
+.cta-solid {
+  border: 1px solid #54545a;
+  background: #232326;
+}
+
+/* Adaptation screen keeps the same cinema shell and neutral controls. */
+.adaptation-topbar {
+  min-height: 64px;
+  padding: 14px clamp(22px, 4vw, 68px);
+  border-bottom-color: #202024;
+  background: rgba(7, 7, 8, 0.94);
+  backdrop-filter: blur(18px);
+}
+
+.pocketfm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f4f4f5;
+  font-weight: 800;
+}
+
+.pocketfm-tag::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 3px 3px 3px 1px;
+  background: var(--cta-solid);
+}
+
+.adaptation-body {
+  max-width: 1120px;
+  gap: 20px;
+  padding: 34px clamp(22px, 4vw, 68px) 150px;
+}
+
+.story-detail {
+  position: relative;
+  gap: clamp(22px, 4vw, 46px);
+  min-height: 270px;
+  align-items: center;
+  padding: 28px;
+  border: 1px solid #242428;
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, #101012 0%, #101012 48%, rgba(16, 16, 18, 0.62) 100%),
+    radial-gradient(circle at 90% 40%, rgba(237, 23, 79, 0.24), transparent 34%);
+  overflow: hidden;
+}
+
+.story-detail::after {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  right: -65px;
+  top: -85px;
+  border: 1px solid rgba(237, 23, 79, 0.16);
+  border-radius: 50%;
+  box-shadow: 0 0 80px rgba(237, 23, 79, 0.09);
+}
+
+.story-detail-art {
+  width: 174px;
+  height: 214px;
+  border: 1px solid #37373c;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, transparent 38%, rgba(0,0,0,0.76)),
+    radial-gradient(circle at 65% 28%, rgba(255,255,255,0.15), transparent 16%),
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 38%, #15151a), #1b1117 72%);
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.42);
+}
+
+.story-detail-art .pill {
+  border-color: transparent !important;
+  color: white !important;
+  border-radius: 3px;
+  background: var(--cta-solid);
+}
+
+.story-detail-title-mini {
+  font-size: 0.95rem;
+}
+
+.story-detail-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.story-detail-copy h2 {
+  font-size: clamp(1.8rem, 3vw, 2.75rem);
+  letter-spacing: -0.045em;
+}
+
+.episode-line {
+  font-size: 0.78rem;
+}
+
+.adapted-quote {
+  max-width: 68ch;
+  padding: 13px 16px;
+  border-left-color: var(--cta-solid) !important;
+  border-radius: 0 6px 6px 0;
+  background: rgba(255, 255, 255, 0.035);
+  color: #c7c7cb;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.controls-panel,
+.integrity-panel,
+.idiom-panel,
+.video-trailer-panel {
+  border-color: #29292d;
+  border-radius: 12px;
+  background: #111113;
+}
+
+.controls-panel {
+  padding: 22px;
+}
+
+.controls-panel h4,
+.controls-heading-icon {
+  color: #f2f2f3;
+}
+
+.controls-heading-icon {
+  color: var(--cta-solid);
+}
+
+.control-field > span {
+  color: #85858c;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
+.control-field select,
+.control-field textarea {
+  min-height: 43px;
+  border-color: #3a3a3f;
+  border-radius: 7px;
+  background: #09090a;
+}
+
+.control-field select:hover,
+.control-field textarea:hover {
+  border-color: #55555b;
+}
+
+.modulation-label,
+.status-line,
+.integrity-score,
+.idiom-arrow,
+.invariant-list svg {
+  color: #ff527d !important;
+}
+
+.integrity-panel,
+.idiom-panel {
+  padding: 18px;
+}
+
+.invariant-list,
+.idiom-list {
+  color: #b7b7bc;
+}
+
+.player-bar {
+  padding: 11px clamp(22px, 4vw, 68px) 14px;
+  border-top-color: #303035;
+  background: rgba(15, 15, 17, 0.97);
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.player-progress-track {
+  height: 3px;
+  background: #343439;
+}
+
+.play-pause {
+  background: var(--cta-solid);
+}
+
+.player-volume input[type='range'] {
+  accent-color: var(--cta-solid);
+}
+
+@media (max-width: 1120px) {
+  .story-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .app-header { gap: 18px; }
+  .header-meta { display: none; }
+  .featured-card { min-height: 300px; padding: 40px 28px; }
+  .featured-card::before { right: -130px; opacity: 0.55; }
+  .featured-card::after { display: none; }
+  .story-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .story-detail { align-items: stretch; }
+  .story-detail-art { width: 100%; height: 126px; }
+}
+
+@media (max-width: 560px) {
+  .app-header { padding: 12px 16px; }
+  .brand-dot { width: 30px; height: 30px; }
+  .library-body,
+  .adaptation-body { padding-left: 16px; padding-right: 16px; }
+  .upload-story-card { padding: 20px; }
+  .upload-story-button { width: 100%; }
+  .story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .story-detail { padding: 18px; }
+}

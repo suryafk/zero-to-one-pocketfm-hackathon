@@ -73,7 +73,7 @@ export const VolumeIcon = (props) => (
 
 export const CheckIcon = (props) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" {...props}>
-    <path d="M5 13l5 5L20 6" stroke="#30D158" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5 13l5 5L20 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 
