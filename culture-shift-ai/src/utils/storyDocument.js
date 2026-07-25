@@ -4,6 +4,15 @@ function cleanText(value) {
   return value.replace(/\s+/g, ' ').trim()
 }
 
+async function extractPdfOnServer(file) {
+  const body = new FormData()
+  body.append('pdf_file', file)
+  const response = await fetch('/api/extract-pdf', { method: 'POST', body })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.detail || 'The PDF could not be extracted by the OCR service.')
+  return cleanText(data.text || '')
+}
+
 async function extractDocx(file) {
   const bytes = new Uint8Array(await file.arrayBuffer())
   const name = new TextEncoder().encode('word/document.xml')
@@ -30,27 +39,59 @@ async function extractDocx(file) {
 }
 
 async function extractPdf(file) {
+  const [{ GlobalWorkerOptions, getDocument }, { default: pdfWorkerUrl }] = await Promise.all([
+    import('pdfjs-dist'),
+    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+  ])
+  GlobalWorkerOptions.workerSrc = pdfWorkerUrl
   const bytes = new Uint8Array(await file.arrayBuffer())
-  let source = new TextDecoder('latin1').decode(bytes)
-  const streams = [...source.matchAll(/\/Filter\s*\/FlateDecode[\s\S]*?stream\r?\n/g)]
-  if ('DecompressionStream' in window) {
-    const decodedStreams = await Promise.all(streams.map(async (match) => {
-      const start = match.index + match[0].length
-      const end = source.indexOf('endstream', start)
-      if (end < 0) return ''
-      try {
-        return await new Response(new Blob([bytes.slice(start, end)]).stream().pipeThrough(new DecompressionStream('deflate'))).text()
-      } catch {
-        return ''
-      }
-    }))
-    source += decodedStreams.join('\n')
+  let document
+  let loadingTask
+
+  try {
+    loadingTask = getDocument({ data: bytes, useWorkerFetch: true })
+    document = await loadingTask.promise
+  } catch (error) {
+    if (error?.name === 'PasswordException') {
+      throw new Error('This PDF is password-protected. Remove the password and upload it again.')
+    }
+    return extractPdfOnServer(file)
   }
-  const fragments = [...source.matchAll(/\((?:\\.|[^\\)])*\)\s*Tj/g)].map((match) =>
-    match[0].slice(1, match[0].lastIndexOf(')')).replace(/\\([()\\])/g, '$1'),
-  )
-  const text = cleanText(fragments.join(' '))
-  if (!text) throw new Error('No readable text was found. Scanned PDFs need OCR before upload.')
+
+  const pages = []
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber)
+      const content = await page.getTextContent({ includeMarkedContent: false })
+      let pageText = ''
+      for (const item of content.items) {
+        if (typeof item.str !== 'string') continue
+        pageText += item.str
+        pageText += item.hasEOL ? '\n' : ' '
+      }
+      const normalized = pageText.normalize('NFKC').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      if (normalized.trim()) pages.push(normalized.trim())
+      page.cleanup()
+    }
+  } finally {
+    await loadingTask.destroy()
+  }
+
+  const rawText = pages.join('\n\n')
+  const text = cleanText(rawText)
+  if (text.length < 40) {
+    return extractPdfOnServer(file)
+  }
+
+  const nonWhitespaceCount = (text.match(/\S/g) || []).length
+  const letterCount = (text.match(/\p{L}/gu) || []).length
+  const replacementCount = (text.match(/[\uFFFD\uE000-\uF8FF]/g) || []).length
+  const letterRatio = letterCount / Math.max(nonWhitespaceCount, 1)
+  const corruptionRatio = replacementCount / Math.max(nonWhitespaceCount, 1)
+
+  if (letterRatio < 0.35 || corruptionRatio > 0.01) {
+    return extractPdfOnServer(file)
+  }
   return text
 }
 
@@ -84,6 +125,20 @@ export function createUploadedStory(file, text) {
     quote: excerpt,
     synopsis: text.slice(0, 1000),
     sourceText: text,
+  }
+}
+
+export function createProcessingStory(file) {
+  const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded story'
+  return {
+    id: `processing-${Date.now()}`,
+    title,
+    originalGenre: 'Drama',
+    originalCulture: 'Uploaded Story',
+    episode: 'Extracting your document',
+    quote: 'Reading the story and preparing it for adaptation…',
+    isExtracting: true,
+    sourceFileName: file.name,
   }
 }
 

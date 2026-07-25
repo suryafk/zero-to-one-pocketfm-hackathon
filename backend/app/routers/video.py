@@ -65,10 +65,14 @@ async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
         f"Create a cinematic animated audio-story trailer for '{payload.title}', reimagined as {payload.genre} "
         f"in a {payload.culture} setting. Family-friendly fictional characters only; no real people, logos, "
         "copyrighted characters, captions, or on-screen text. Use expressive stylized animation, coherent recurring "
-        "characters, dramatic lighting, smooth camera motion, and three connected visual beats. This must tease the "
-        "overall premise without revealing twists, climax, culprit, or ending. "
-        f"Overall premise: {concept['premise']}. Visual mood: {concept['mood']}. "
-        f"Opening: {beats[0]}. Escalation: {beats[1]}. Cliffhanger image: {beats[2]}."
+        "characters, dramatic lighting, smooth camera motion, and three connected visual beats. Do not reveal twists, "
+        "the climax, culprit, or ending. Keep the edit concise and follow this exact timeline: "
+        f"0-5 seconds, establish this premise: {concept['trailer_summary']}. "
+        f"5-11 seconds, opening and escalation: {beats[0]}; {beats[1]}. "
+        f"11-16 seconds, unresolved cliffhanger: {beats[2]}; {concept['suspense_line']}. "
+        "16-20 seconds, stop the action and hold on a clean dramatic end card. "
+        f"Visual mood: {concept['mood']}. Voiceover for the first 16 seconds: {concept['voiceover_script']}. "
+        f"During the final four seconds, clearly show and say exactly: '{concept['call_to_action']}'"
     )
     try:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -86,7 +90,9 @@ async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
         raise HTTPException(status_code=502, detail=f"Could not reach the video provider: {exc}") from exc
     if not response.is_success:
         raise _upstream_error(response)
-    return response.json()
+    job = response.json()
+    job["trailer_concept"] = concept
+    return job
 
 
 @router.get("/{video_id}")
