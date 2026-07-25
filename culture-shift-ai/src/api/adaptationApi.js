@@ -86,6 +86,11 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
       fullEpisode: { label: 'Full Adapted Episode', durationSeconds: 0, audioUrl },
       generationSeconds: 0,
       transformedScript: data.transformed_script,
+      teaserDetails: {
+        hook: data.teaser?.hook,
+        risingTension: data.teaser?.rising_tension,
+        cliffhanger: data.teaser?.cliffhanger,
+      },
     }
     console.info('[CultureShift] Adapted audio ready for player', { audioGenerated: Boolean(audioUrl) })
     return result
@@ -151,4 +156,42 @@ export async function generateAdaptation({
   // BRD's "< 10s" non-functional requirement independently of this delay).
   await new Promise((resolve) => setTimeout(resolve, 900 + Math.random() * 700))
   return runMockAdaptation({ story, genre, culture, language, customPrompt })
+}
+
+export async function startVideoTrailer({ story, result }) {
+  const response = await fetch(`${BASE_URL}/api/video-trailers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: story.title,
+      genre: result.genre,
+      culture: result.culture,
+      story_text: result.transformedScript || result.transcript || story.synopsis || result.adaptedQuote,
+    }),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.detail || `Video generation failed (${response.status}).`)
+  }
+  return response.json()
+}
+
+export async function getVideoTrailerCapability() {
+  const response = await fetch(`${BASE_URL}/api/video-trailers-enabled`)
+  if (!response.ok) return false
+  const data = await response.json()
+  return data.enabled === true
+}
+
+export async function getVideoTrailer(videoId) {
+  const response = await fetch(`${BASE_URL}/api/video-trailers/${encodeURIComponent(videoId)}`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.detail || `Could not check video status (${response.status}).`)
+  }
+  return response.json()
+}
+
+export function videoTrailerContentUrl(videoId) {
+  return `${BASE_URL}/api/video-trailers/${encodeURIComponent(videoId)}/content`
 }

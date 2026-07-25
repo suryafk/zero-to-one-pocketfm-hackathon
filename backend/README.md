@@ -91,6 +91,13 @@ from that transcript, rewrites the story in the requested `language`, and—when
 
 OpenAI transcription uploads must be 25 MB or smaller.
 
+## Video trailer spending guard
+
+Video generation is disabled by default. Set `VIDEO_GENERATION_ENABLED=true`
+in `backend/.env` and restart the API only when you are ready to run a
+controlled demo. When disabled, the video option is hidden in the frontend and
+the backend rejects video render requests before making any billable API call.
+
 ## Connecting the frontend demo
 
 The React app in `../culture-shift-ai` talks to this backend through the

@@ -134,6 +134,8 @@ app uses the real pipeline; with only the frontend, it uses the mock engine.
 |----------|---------|-------|
 | `OPENAI_API_KEY` | — | **Required.** The LLM layer uses OpenAI. |
 | `OPENAI_MODEL` | `gpt-4o` | Chat model used for F1/F2/F3/F5. |
+| `OPENAI_VIDEO_MODEL` | `sora-2` | Video model used for trailer rendering. |
+| `VIDEO_GENERATION_ENABLED` | `false` | Opt-in spending guard. Set `true` only for controlled trailer demos. |
 | `TTS_PROVIDER` | `mock` | `mock`, `elevenlabs`, or `azure`. |
 | `ELEVENLABS_API_KEY` | — | Required if `TTS_PROVIDER=elevenlabs`. |
 | `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | — | Required if `TTS_PROVIDER=azure`. |
