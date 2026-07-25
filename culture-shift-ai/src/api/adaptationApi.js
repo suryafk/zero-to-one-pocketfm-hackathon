@@ -110,6 +110,16 @@ export async function fetchStories() {
   return real ?? seedStories
 }
 
+export async function transcribeAudioSource(file) {
+  const body = new FormData()
+  body.append('audio_file', file)
+  const response = await fetch(`${BASE_URL}/api/source/transcribe`, { method: 'POST', body })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.detail || 'The audio file could not be transcribed.')
+  if (!data.text?.trim()) throw new Error('The audio transcription was empty.')
+  return data.text.trim()
+}
+
 /**
  * POST /api/adapt
  * body: { storyId, genre, culture, language, customPrompt }
@@ -134,7 +144,7 @@ export async function generateAdaptation({
   customPrompt,
 }) {
   const voiceStyle = deriveVoiceStyle(genre, culture)
-  if (story.sourceAudioFile) {
+  if (story.sourceAudioFile && !story.sourceText) {
     const audioResult = await tryAudioAdaptation({ story, genre, culture, language, voiceStyle })
     if (audioResult) return audioResult
     throw new Error('The audio upload could not be transcribed or synthesized. Check the backend and OpenAI configuration, then try again.')
@@ -144,6 +154,8 @@ export async function generateAdaptation({
     method: 'POST',
     body: JSON.stringify({
       storyId: story.id,
+      storyTitle: story.title,
+      storyText: story.sourceText,
       genre,
       culture,
       language,
@@ -182,10 +194,15 @@ export async function startVideoTrailer({ story, result }) {
 }
 
 export async function getVideoTrailerCapability() {
-  const response = await fetch(`${BASE_URL}/api/video-trailers-enabled`)
-  if (!response.ok) return false
-  const data = await response.json()
-  return data.enabled === true
+  try {
+    const response = await fetch(`${BASE_URL}/api/video-trailers-enabled`)
+    if (!response.ok) return null
+    const data = await response.json()
+    return data.enabled === true
+  } catch {
+    // `null` means temporarily unreachable; `false` means explicitly disabled.
+    return null
+  }
 }
 
 export async function getVideoTrailer(videoId) {

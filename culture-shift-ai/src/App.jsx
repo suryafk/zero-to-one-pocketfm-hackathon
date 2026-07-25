@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { fetchStories } from './api/adaptationApi.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { fetchStories, transcribeAudioSource } from './api/adaptationApi.js'
 import Screen1Library from './components/Screen1Library.jsx'
 import Screen2Adaptation from './components/Screen2Adaptation.jsx'
 import { createProcessingStory, createUploadedAudioStory, createUploadedStory, extractStoryText } from './utils/storyDocument.js'
@@ -8,16 +8,29 @@ export default function App() {
   const [stories, setStories] = useState([])
   const [selectedStory, setSelectedStory] = useState(null)
   const [uploadError, setUploadError] = useState('')
+  const [storySessions, setStorySessions] = useState({})
   const uploadRequest = useRef(0)
 
   useEffect(() => {
-    fetchStories().then(setStories)
+    fetchStories().then((catalog) => {
+      setStories((current) => [
+        ...catalog,
+        ...current.filter((story) => story.id.startsWith('uploaded-')),
+      ])
+    })
+  }, [])
+
+  const saveStorySession = useCallback((storyId, session) => {
+    setStorySessions((current) => ({ ...current, [storyId]: session }))
   }, [])
 
   if (selectedStory) {
     return (
       <Screen2Adaptation
+        key={selectedStory.id}
         story={selectedStory}
+        initialSession={storySessions[selectedStory.id]}
+        onSessionChange={saveStorySession}
         onBack={() => {
           uploadRequest.current += 1
           setSelectedStory(null)
@@ -31,13 +44,23 @@ export default function App() {
     setUploadError('')
     try {
       if (file.type === 'audio/mpeg' || file.name.toLowerCase().endsWith('.mp3')) {
-        setSelectedStory(createUploadedAudioStory(file))
+        setSelectedStory(createProcessingStory(file, 'audio'))
+        const transcript = await transcribeAudioSource(file)
+        if (requestId === uploadRequest.current) {
+          const uploadedStory = createUploadedAudioStory(file, transcript)
+          setStories((current) => [...current.filter((story) => story.id !== uploadedStory.id), uploadedStory])
+          setSelectedStory(uploadedStory)
+        }
         return
       }
       setSelectedStory(createProcessingStory(file))
       const text = await extractStoryText(file)
       if (!text) throw new Error('This document is empty. Choose a file containing story text.')
-      if (requestId === uploadRequest.current) setSelectedStory(createUploadedStory(file, text))
+      if (requestId === uploadRequest.current) {
+        const uploadedStory = createUploadedStory(file, text)
+        setStories((current) => [...current.filter((story) => story.id !== uploadedStory.id), uploadedStory])
+        setSelectedStory(uploadedStory)
+      }
     } catch (error) {
       if (requestId === uploadRequest.current) {
         setSelectedStory(null)

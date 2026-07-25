@@ -128,7 +128,7 @@ export function createUploadedStory(file, text) {
   }
 }
 
-export function createProcessingStory(file) {
+export function createProcessingStory(file, processingType = 'document') {
   const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded story'
   return {
     id: `processing-${Date.now()}`,
@@ -139,10 +139,11 @@ export function createProcessingStory(file) {
     quote: 'Reading the story and preparing it for adaptation…',
     isExtracting: true,
     sourceFileName: file.name,
+    processingType,
   }
 }
 
-export function createUploadedAudioStory(file) {
+export function createUploadedAudioStory(file, transcript) {
   const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded audio story'
   return {
     id: `uploaded-audio-${Date.now()}`,
@@ -152,8 +153,10 @@ export function createUploadedAudioStory(file) {
     listens: 'New',
     rating: 0,
     episode: 'Your uploaded audio story',
-    quote: 'Your uploaded audio is ready to listen to. Choose the adaptation filters, then play the full story.',
-    synopsis: 'An audio story uploaded from your device.',
+    quote: transcript.slice(0, 500),
+    synopsis: transcript.slice(0, 1000),
+    sourceText: transcript,
+    transcript,
     sourceAudioUrl: URL.createObjectURL(file),
     sourceAudioFile: file,
   }
