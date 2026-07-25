@@ -1,5 +1,6 @@
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -22,16 +23,20 @@ class FrontendCompatTests(unittest.TestCase):
         self.assertTrue(any(item["id"] == "shadow-of-mumbai" for item in data))
 
     def test_adapt_endpoint_returns_frontend_shape(self) -> None:
-        response = self.client.post(
-            "/api/adapt",
-            json={
-                "storyId": "shadow-of-mumbai",
-                "genre": "Thriller",
-                "culture": "Rural Bhojpuri",
-                "language": "Hindi",
-                "customPrompt": "Make it feel eerie.",
-            },
-        )
+        # Keep the frontend contract test offline and deterministic. Dedicated
+        # pipeline tests cover the real orchestration with mocked services.
+        with patch("app.routers.frontend_compat.get_settings") as get_settings:
+            get_settings.return_value.openai_api_key = ""
+            response = self.client.post(
+                "/api/adapt",
+                json={
+                    "storyId": "shadow-of-mumbai",
+                    "genre": "Thriller",
+                    "culture": "Rural Bhojpuri",
+                    "language": "Hindi",
+                    "customPrompt": "Make it feel eerie.",
+                },
+            )
 
         self.assertEqual(response.status_code, 200)
         data = response.json()

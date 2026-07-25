@@ -38,7 +38,7 @@ async function tryFetch(path, options) {
   }
 }
 
-async function tryAudioAdaptation({ story, genre, culture, language, synthesizeVoice, voiceStyle }) {
+async function tryAudioAdaptation({ story, genre, culture, language, synthesizeVoice, voiceStyle, playbackMode }) {
   try {
     console.info('[CultureShift] Audio adaptation started', {
       fileName: story.sourceAudioFile.name,
@@ -54,6 +54,7 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
     body.append('region', culture)
     body.append('language', language)
     body.append('synthesize_voice', String(synthesizeVoice))
+    body.append('synthesis_target', playbackMode)
     Object.entries(voiceStyle).forEach(([key, value]) => body.append(key, value))
 
     console.info('[CultureShift] Uploading MP3 for transcription and adaptation')
@@ -82,8 +83,8 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
       culture: data.region,
       language,
       transcript: data.source_transcript,
-      teaser: { label: '30s Custom Teaser', durationSeconds: 45, audioUrl: undefined },
-      fullEpisode: { label: 'Full Adapted Episode', durationSeconds: 0, audioUrl },
+      teaser: { label: '30s Custom Teaser', durationSeconds: 45, audioUrl: playbackMode === 'teaser' ? audioUrl : undefined },
+      fullEpisode: { label: 'Full Adapted Episode', durationSeconds: 0, audioUrl: playbackMode === 'full_episode' ? audioUrl : undefined },
       generationSeconds: 0,
       transformedScript: data.transformed_script,
     }
@@ -124,10 +125,11 @@ export async function generateAdaptation({
   language,
   customPrompt,
   synthesizeVoice = true,
+  playbackMode = 'full_episode',
 }) {
   const voiceStyle = deriveVoiceStyle(genre, culture)
   if (story.sourceAudioFile) {
-    const audioResult = await tryAudioAdaptation({ story, genre, culture, language, synthesizeVoice, voiceStyle })
+    const audioResult = await tryAudioAdaptation({ story, genre, culture, language, synthesizeVoice, voiceStyle, playbackMode })
     if (audioResult) return audioResult
     throw new Error('The audio upload could not be transcribed or synthesized. Check the backend and OpenAI configuration, then try again.')
   }
@@ -141,6 +143,7 @@ export async function generateAdaptation({
       language,
       customPrompt,
       synthesizeVoice,
+      playbackMode,
       voiceStyle,
     }),
   })

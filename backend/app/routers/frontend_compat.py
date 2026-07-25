@@ -133,6 +133,9 @@ def adapt_frontend(payload: dict) -> dict:
     culture_value = payload.get("culture") or story["originalCulture"]
     language_value = payload.get("language") or "Hindi"
     custom_prompt = payload.get("customPrompt", "")
+    playback_mode = payload.get("playbackMode", "full_episode")
+    if playback_mode not in {"teaser", "full_episode"}:
+        raise HTTPException(status_code=422, detail="playbackMode must be 'teaser' or 'full_episode'.")
 
     try:
         genre = Genre(genre_value)
@@ -199,9 +202,16 @@ def adapt_frontend(payload: dict) -> dict:
     voice = None
     if payload.get("synthesizeVoice"):
         try:
-            print(f"Voice synthesis requested for region: {region.value}")
+            speech_text = (
+                f"{teaser['hook']} {teaser['rising_tension']} {teaser['cliffhanger']}"
+                if isinstance(teaser, dict) and playback_mode == "teaser"
+                else f"{teaser.hook} {teaser.rising_tension} {teaser.cliffhanger}"
+                if playback_mode == "teaser"
+                else transformed_script
+            )
+            print(f"Voice synthesis requested for {playback_mode} in region: {region.value}")
             voice = voice_synth.synthesize(
-                text=transformed_script,
+                text=speech_text,
                 region=region,
                 voice_style=voice_style,
                 language=language_value,
@@ -244,12 +254,12 @@ def adapt_frontend(payload: dict) -> dict:
         "teaser": {
             "label": "30s Custom Teaser",
             "durationSeconds": 45,
-            "audioUrl": None,
+            "audioUrl": voice_audio_url if playback_mode == "teaser" else None,
         },
         "fullEpisode": {
             "label": "Full Adapted Episode",
             "durationSeconds": 612,
-            "audioUrl": voice_audio_url,
+            "audioUrl": voice_audio_url if playback_mode == "full_episode" else None,
         },
         "generationSeconds": generation_seconds,
         "voice": voice,

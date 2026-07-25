@@ -135,3 +135,4 @@ class AdaptResponse(BaseModel):
     voice: Optional[VoiceResponse] = None
     source_transcript: Optional[str] = None
     voice_style: Optional[VoiceStyle] = None
+    synthesis_target: Optional[str] = None

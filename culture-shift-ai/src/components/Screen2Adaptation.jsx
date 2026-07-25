@@ -33,6 +33,7 @@ export default function Screen2Adaptation({ story, onBack }) {
         story,
         ...params,
         synthesizeVoice: true,
+        playbackMode: mode === 'teaser' ? 'teaser' : 'full_episode',
       })
       setResult(res)
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode

@@ -28,6 +28,7 @@ async def adapt(
     genre: Genre = Form(...),
     region: Region = Form(...),
     synthesize_voice: bool = Form(True),
+    synthesis_target: str = Form("full_episode"),
     language: str = Form("English"),
     accent: str | None = Form(None),
     emotional_range: str | None = Form(None),
@@ -53,6 +54,8 @@ async def adapt(
             "whispering": whispering,
         },
     )
+    if synthesis_target not in {"teaser", "full_episode"}:
+        raise HTTPException(status_code=422, detail="synthesis_target must be 'teaser' or 'full_episode'.")
     logger.info(
         "Adaptation started | genre=%s region=%s language=%s synthesize_voice=%s input=%s",
         genre.value, region.value, language, synthesize_voice, "audio" if audio_file else "text",
@@ -108,10 +111,15 @@ async def adapt(
 
     voice = None
     if synthesize_voice:
-        logger.info("Voice synthesis started | script_characters=%s accent=%s tone=%s", len(transformed_script), voice_style.accent, voice_style.tone)
+        speech_text = (
+            f"{teaser.hook} {teaser.rising_tension} {teaser.cliffhanger}"
+            if synthesis_target == "teaser"
+            else transformed_script
+        )
+        logger.info("Voice synthesis started | target=%s text_characters=%s accent=%s tone=%s", synthesis_target, len(speech_text), voice_style.accent, voice_style.tone)
         try:
             voice = voice_synth.synthesize(
-                text=transformed_script,
+                text=speech_text,
                 region=region,
                 voice_style=voice_style,
                 language=language,
@@ -137,4 +145,5 @@ async def adapt(
         voice=voice,
         source_transcript=transcript,
         voice_style=voice_style,
+        synthesis_target=synthesis_target if synthesize_voice else None,
     )
