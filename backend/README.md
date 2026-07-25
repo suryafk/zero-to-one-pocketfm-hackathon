@@ -81,6 +81,16 @@ To synthesize with OpenAI, set `TTS_PROVIDER=openai`,
 region → built-in voice mapping lives in `OPENAI_REGION_VOICE_MAP` in
 `app/services/voice_synth.py`.
 
+## MP3 upload flow
+
+The native `POST /api/v1/adapt` endpoint accepts an `audio_file` multipart
+field. With `STT_PROVIDER=openai` (the default), it transcribes the uploaded
+MP3 using `OPENAI_STT_MODEL=gpt-4o-transcribe`, extracts the plot invariants
+from that transcript, rewrites the story in the requested `language`, and—when
+`synthesize_voice=true`—returns OpenAI TTS audio for the frontend player.
+
+OpenAI transcription uploads must be 25 MB or smaller.
+
 ## Connecting the frontend demo
 
 The React app in `../culture-shift-ai` talks to this backend through the

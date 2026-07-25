@@ -100,5 +100,6 @@ export function createUploadedAudioStory(file) {
     quote: 'Your uploaded audio is ready to listen to. Choose the adaptation filters, then play the full story.',
     synopsis: 'An audio story uploaded from your device.',
     sourceAudioUrl: URL.createObjectURL(file),
+    sourceAudioFile: file,
   }
 }

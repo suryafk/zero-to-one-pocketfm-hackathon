@@ -28,19 +28,20 @@ export default function Screen2Adaptation({ story, onBack }) {
     setIsGenerating(true)
     setStatus('Locking plot invariants and generating adaptation…')
     try {
+      console.info('[CultureShift] Starting playback flow', { mode, storyId: story.id })
       const res = await generateAdaptation({
         story,
         ...params,
-        synthesizeVoice: mode === 'full',
+        synthesizeVoice: true,
       })
       setResult(res)
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
-      const track = mode === 'full' && !generatedTrack.audioUrl && story.sourceAudioUrl
-        ? { ...generatedTrack, label: `Uploaded audio: ${story.title}`, audioUrl: story.sourceAudioUrl }
-        : generatedTrack
+      const track = generatedTrack
       playback.play(track)
+      console.info('[CultureShift] Playback started', { label: track.label, hasAudio: Boolean(track.audioUrl) })
       setStatus(`Generated in ${res.generationSeconds}s — playing ${track.label.toLowerCase()}.`)
     } catch (err) {
+      console.error('[CultureShift] Playback flow failed', err)
       setStatus('Something went wrong generating this adaptation. Please try again.')
     } finally {
       setIsGenerating(false)

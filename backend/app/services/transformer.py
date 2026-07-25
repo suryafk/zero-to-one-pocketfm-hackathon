@@ -28,16 +28,23 @@ must all still be identifiable in your rewrite. Do not alter them.
 Respond with strict JSON only, no markdown fences, no preamble. Shape:
 {"transformed_script": ""}
 
-The transformed_script should be 150-220 words of narrative/dialogue.
+The transformed_script should be 150-220 words of narrative/dialogue in the requested target language.
 """
 
 
-def transform_story(story_text: str, genre: Genre, region: Region, invariants: PlotInvariants) -> str:
+def transform_story(
+    story_text: str,
+    genre: Genre,
+    region: Region,
+    invariants: PlotInvariants,
+    target_language: str = "English",
+) -> str:
     user_prompt = (
         f"LOCKED PLOT INVARIANTS:\n{invariants.model_dump_json(indent=2)}\n\n"
         f"ORIGINAL STORY TEXT:\n{story_text}\n\n"
         f"TARGET GENRE: {genre.value}\n"
-        f"TARGET REGION: {region.value}"
+        f"TARGET REGION: {region.value}\n"
+        f"TARGET LANGUAGE: {target_language}. Write the complete transformed script in this language."
     )
     data = call_json(SYSTEM_PROMPT, user_prompt, max_tokens=900)
     return data["transformed_script"]

@@ -15,12 +15,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
     openai_tts_model: str = "gpt-4o-mini-tts"
+    openai_stt_model: str = "gpt-4o-transcribe"
 
     # --- TTS layer (Feature 4) ---
     # Supported values: "openai", "elevenlabs", and "mock".
     tts_provider: str = "openai"
     # Speech-to-text provider (separate from TTS_PROVIDER).
-    stt_provider: str = "elevenlabs"
+    stt_provider: str = "openai"
 
     elevenlabs_api_key: str = ""
     azure_speech_key: str = ""

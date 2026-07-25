@@ -185,8 +185,9 @@ curl -X POST http://localhost:8000/api/v1/adapt \
   `/api/stories` shape.)
 - **Story upload.** From the library, users can upload a `.txt` / `.docx`
   document (parsed client-side in `utils/storyDocument.js`) or an `.mp3` and run
-  an adaptation against it. Uploaded audio plays back through the real `<audio>`
-  element.
+  an adaptation against it. MP3 uploads are sent to `/api/v1/adapt`, transcribed
+  with OpenAI, anchored and rewritten from that transcript, then synthesized as
+  a new MP3 in the chosen language for the frontend player.
 - **Full catalog sync.** The backend `/api/stories` catalog matches the 6-story
   frontend seed (+ The Tell-Tale Heart = 7).
 - **Robust genre default.** Screen 2 defaults the genre from the selectable

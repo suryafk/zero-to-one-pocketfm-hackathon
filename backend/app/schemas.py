@@ -29,6 +29,8 @@ class Region(str, Enum):
     south_london_grime = "South London Grime"
     street_lagos_pidgin = "Street Lagos Pidgin"
     mumbai_tapri = "Mumbai Tapri"
+    seoul_underground = "Seoul Underground"
+    rio_favela = "Rio Favela"
 
 
 # ---------- Feature 1: Core Plot Anchor ----------
@@ -104,6 +106,17 @@ class VoiceResponse(BaseModel):
     note: Optional[str] = None
 
 
+class VoiceStyle(BaseModel):
+    """Narration controls supplied with an adaptation request."""
+    accent: str
+    emotional_range: str
+    intonation: str
+    impressions: str
+    speed_of_speech: str
+    tone: str
+    whispering: str
+
+
 # ---------- Full pipeline (Entertainment CEO Agent) ----------
 
 class AdaptRequest(BaseModel):
@@ -120,3 +133,5 @@ class AdaptResponse(BaseModel):
     transformed_script: str
     teaser: Teaser
     voice: Optional[VoiceResponse] = None
+    source_transcript: Optional[str] = None
+    voice_style: Optional[VoiceStyle] = None
