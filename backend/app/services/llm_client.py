@@ -46,17 +46,25 @@ def call_json(system_prompt: str, user_prompt: str, max_tokens: int = 1200) -> d
     # mode requires the word "JSON" to appear in the prompt somewhere.
     json_system_prompt = system_prompt.strip() + "\n\nAlways respond with a single valid JSON object."
 
-    try:
-        completion = client.chat.completions.create(
+    def create_completion(messages: list[dict[str, str]], token_limit: int):
+        return client.chat.completions.create(
             model=settings.openai_model,
-            max_tokens=max_tokens,
+            max_tokens=token_limit,
             response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": json_system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+            messages=messages,
         )
+
+    messages = [
+        {"role": "system", "content": json_system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    try:
+        print(f"Calling OpenAI API with model {settings.openai_model}...")
+        completion = create_completion(messages, max_tokens)
+        print("OpenAI API call successful.")
     except openai.APIError as exc:
+        print(f"OpenAI API call failed: {exc}")
         raise LLMError(f"OpenAI API call failed: {exc}") from exc
 
     raw = (completion.choices[0].message.content or "").strip()
@@ -64,4 +72,35 @@ def call_json(system_prompt: str, user_prompt: str, max_tokens: int = 1200) -> d
     try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise LLMError(f"Model did not return valid JSON: {exc}\nRaw output: {raw[:500]}") from exc
+        print(f"Model did not return valid JSON. Raw output: {raw[:500]}")
+
+        # JSON mode can still produce incomplete output when the token limit is
+        # reached, and providers occasionally return malformed JSON. Retry once:
+        # regenerate truncated output, or ask the model to repair malformed JSON.
+        finish_reason = completion.choices[0].finish_reason
+        if finish_reason == "length":
+            retry_messages = messages
+            retry_tokens = max_tokens * 2
+            print(f"JSON response was truncated; retrying with {retry_tokens} tokens.")
+        else:
+            retry_messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "Repair the supplied text into one valid JSON object. "
+                        "Preserve its keys and meaning. Return JSON only."
+                    ),
+                },
+                {"role": "user", "content": raw},
+            ]
+            retry_tokens = max_tokens
+            print("Retrying once to repair malformed JSON.")
+
+        try:
+            retry = create_completion(retry_messages, retry_tokens)
+            repaired_raw = (retry.choices[0].message.content or "").strip()
+            return json.loads(repaired_raw)
+        except (openai.APIError, json.JSONDecodeError) as retry_exc:
+            raise LLMError(
+                f"Model did not return valid JSON after one retry: {retry_exc}"
+            ) from retry_exc

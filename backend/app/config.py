@@ -14,13 +14,12 @@ class Settings(BaseSettings):
     # --- OpenAI (LLM layer) ---
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
+    openai_tts_model: str = "gpt-4o-mini-tts"
 
     # --- TTS layer (Feature 4) ---
-    # "mock" returns a stubbed response with no external call, useful for local dev
-    # and hackathon demos without TTS credentials. Swap in "elevenlabs" or "azure"
-    # once you have keys.
-    tts_provider: str = "mock"
-    # "elevenlabs" or "openai" (when uncommented).
+    # Supported values: "openai", "elevenlabs", and "mock".
+    tts_provider: str = "openai"
+    # Speech-to-text provider (separate from TTS_PROVIDER).
     stt_provider: str = "elevenlabs"
 
     elevenlabs_api_key: str = ""

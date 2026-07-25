@@ -24,6 +24,7 @@ def _elevenlabs_transcribe(audio_file: UploadFile) -> str:
 
     files = {"file": (audio_file.filename, audio_file.file, audio_file.content_type)}
 
+    print("Calling ElevenLabs STT API...")
     resp = httpx.post(
         "https://api.elevenlabs.io/v1/speech-to-text",
         headers={"xi-api-key": settings.elevenlabs_api_key},
@@ -33,14 +34,17 @@ def _elevenlabs_transcribe(audio_file: UploadFile) -> str:
 
     try:
         resp.raise_for_status()
+        print("ElevenLabs STT API call successful.")
         return resp.json()["text"]
     except httpx.HTTPStatusError as exc:
         try:
             error_details = exc.response.json().get("detail", {}).get("message", exc.response.text)
         except Exception:
             error_details = exc.response.text
+        print(f"ElevenLabs STT API call failed: {error_details}")
         raise STTError(f"ElevenLabs STT API call failed: {error_details}") from exc
     except Exception as exc:
+        print(f"Failed to process STT response: {exc}")
         raise STTError(f"Failed to process STT response: {exc}") from exc
 
 
@@ -72,6 +76,7 @@ def transcribe(audio_file: UploadFile) -> str:
     settings = get_settings()
     provider = settings.stt_provider
 
+    print(f"Transcribing audio using '{provider}' provider.")
     if provider == "elevenlabs":
         return _elevenlabs_transcribe(audio_file)
     # if provider == "openai":

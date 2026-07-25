@@ -117,12 +117,14 @@ def _resolve_story_text(story: dict) -> str:
 
 @router.get("/api/stories")
 def get_stories() -> list[dict]:
+    print("Frontend compatibility: GET /api/stories request received.")
     # Strip backend-only fields (e.g. storyFile) from the public catalog shape.
     return [{k: v for k, v in story.items() if k != "storyFile"} for story in STORY_CATALOG]
 
 
 @router.post("/api/adapt")
 def adapt_frontend(payload: dict) -> dict:
+    print(f"Frontend compatibility: POST /api/adapt request received with payload: {payload}")
     story_id = payload.get("storyId")
     story = next((item for item in STORY_CATALOG if item["id"] == story_id), STORY_CATALOG[0])
     story_text = _resolve_story_text(story)
@@ -146,12 +148,14 @@ def adapt_frontend(payload: dict) -> dict:
     start = time.perf_counter()
     try:
         if settings.openai_api_key:
+            print("OpenAI key found, calling real adaptation pipeline.")
             invariants = plot_anchor.extract_invariants(story_text)
             transformed_script = transformer.transform_story(
                 story_text=story_text,
                 genre=genre,
                 region=region,
                 invariants=invariants,
+
             )
             teaser = teaser_service.generate_teaser(
                 transformed_script=transformed_script,
@@ -160,7 +164,8 @@ def adapt_frontend(payload: dict) -> dict:
             )
         else:
             raise LLMError("OPENAI_API_KEY is not set.")
-    except (LLMError, RuntimeError):
+    except (LLMError, RuntimeError) as e:
+        print(f"LLMError or RuntimeError caught ('{e}'), returning mock adaptation data.")
         invariants = {
             "inciting_incident": f"The mystery around {story['title']} begins when the protagonist is pulled back into an unresolved case.",
             "key_plot_beats": "Investigation, revelation, confrontation, resolution",
@@ -183,15 +188,25 @@ def adapt_frontend(payload: dict) -> dict:
     voice = None
     if payload.get("synthesizeVoice"):
         try:
+            print(f"Voice synthesis requested for region: {region.value}")
             voice = voice_synth.synthesize(text=transformed_script, region=region)
         except Exception as exc:
+            print(f"Frontend compatibility: Voice synthesis failed: {exc}")
             raise HTTPException(status_code=502, detail=f"Voice synthesis failed: {exc}") from exc
+
+    voice_audio_url = None
+    if voice:
+        if voice.audio_url:
+            voice_audio_url = voice.audio_url
+        elif voice.audio_base64:
+            voice_audio_url = f"data:audio/{voice.audio_format};base64,{voice.audio_base64}"
 
     prompt_suffix = f" ({custom_prompt.strip().rstrip('.')})" if custom_prompt.strip() else ""
     adapted_quote = (
         f"{story['title'].split(' ').pop()} {('crept through' if genre == Genre.horror else 'moved carefully through' if genre == Genre.thriller else 'stumbled through' if genre == Genre.comedy else 'lingered in')} the {culture_value.lower()} quarter, and the air felt charged with tension{prompt_suffix}."
     )
 
+    print(f"Frontend adaptation complete in {generation_seconds}s.")
     return {
         "invariants": [
             {"label": "Inciting Incident", "locked": True},
@@ -217,7 +232,7 @@ def adapt_frontend(payload: dict) -> dict:
         "fullEpisode": {
             "label": "Full Adapted Episode",
             "durationSeconds": 612,
-            "audioUrl": None,
+            "audioUrl": voice_audio_url,
         },
         "generationSeconds": generation_seconds,
         "voice": voice,

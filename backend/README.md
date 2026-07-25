@@ -72,14 +72,14 @@ Response shape:
 
 ## Notes on Feature 4 (Voice Synthesizer)
 
-`TTS_PROVIDER=mock` (the default) lets the whole pipeline run with zero external
+`TTS_PROVIDER=mock` lets the whole pipeline run with zero external
 TTS credentials — `/api/v1/voice` and `/api/v1/adapt?synthesize_voice=true` will
 return a stub response with `audio_base64: null` and a note explaining why.
 
-To synthesize real audio, set `TTS_PROVIDER=elevenlabs` or `TTS_PROVIDER=azure` in
-`.env` and add the matching API key. Region → voice-ID mapping lives in
-`app/services/voice_synth.py` (`REGION_VOICE_MAP`) — replace the placeholder IDs
-with real voice IDs from your provider.
+To synthesize with OpenAI, set `TTS_PROVIDER=openai`,
+`OPENAI_TTS_MODEL=gpt-4o-mini-tts`, and `OPENAI_API_KEY` in `.env`. The OpenAI
+region → built-in voice mapping lives in `OPENAI_REGION_VOICE_MAP` in
+`app/services/voice_synth.py`.
 
 ## Connecting the frontend demo
 
