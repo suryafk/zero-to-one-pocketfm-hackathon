@@ -9,6 +9,17 @@ import PlayerBar from './PlayerBar.jsx'
 import VideoTrailerPanel from './VideoTrailerPanel.jsx'
 import { BackIcon } from './Icons.jsx'
 
+function adaptationCacheKey(story, params) {
+  const sourceAudio = story.sourceAudioFile
+  return JSON.stringify({
+    storyId: story.id,
+    sourceAudio: sourceAudio
+      ? { name: sourceAudio.name, size: sourceAudio.size, lastModified: sourceAudio.lastModified }
+      : null,
+    ...params,
+  })
+}
+
 export default function Screen2Adaptation({ story, onBack }) {
   const [params, setParams] = useState({
     genre: genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror',
@@ -17,7 +28,8 @@ export default function Screen2Adaptation({ story, onBack }) {
     customPrompt: '',
   })
   const [result, setResult] = useState(null)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [resultKey, setResultKey] = useState(null)
+  const [generatingMode, setGeneratingMode] = useState(null)
   const [status, setStatus] = useState('')
   const playback = usePlayback()
 
@@ -28,26 +40,52 @@ export default function Screen2Adaptation({ story, onBack }) {
   }
 
   async function runAdaptation(mode) {
-    setIsGenerating(true)
-    setStatus('Locking plot invariants and generating adaptation…')
+    if (generatingMode) return
+    const requestKey = adaptationCacheKey(story, params)
+    const cacheHit = Boolean(result && resultKey === requestKey)
+
+    if (!cacheHit) {
+      setGeneratingMode(mode)
+      setStatus('Locking plot invariants and generating adaptation…')
+    }
+
     try {
-      console.info('[CultureShift] Starting playback flow', { mode, storyId: story.id })
-      const res = await generateAdaptation({
-        story,
-        ...params,
-        synthesizeVoice: true,
-      })
-      setResult(res)
+      console.info('[CultureShift] Starting playback flow', { mode, storyId: story.id, cacheHit })
+      const res = cacheHit
+        ? result
+        : await generateAdaptation({
+            story,
+            ...params,
+          })
+
+      if (!cacheHit) {
+        setResult(res)
+        setResultKey(requestKey)
+      }
+
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
       const track = generatedTrack
-      playback.play(track)
-      console.info('[CultureShift] Playback started', { label: track.label, hasAudio: Boolean(track.audioUrl) })
-      setStatus(`Generated in ${res.generationSeconds}s — playing ${track.label.toLowerCase()}.`)
+      const started = await playback.play(track)
+      console.info('[CultureShift] Playback ready', {
+        label: track.label,
+        hasAudio: Boolean(track.audioUrl),
+        started,
+        cacheHit,
+      })
+      setStatus(
+        cacheHit
+          ? started
+            ? `Playing cached ${track.label.toLowerCase()}.`
+            : `${track.label} is ready to play.`
+          : started
+            ? `Generated in ${res.generationSeconds}s — playing ${track.label.toLowerCase()}.`
+            : `Generated in ${res.generationSeconds}s — ${track.label.toLowerCase()} is ready to play.`,
+      )
     } catch (err) {
       console.error('[CultureShift] Playback flow failed', err)
       setStatus('Something went wrong generating this adaptation. Please try again.')
     } finally {
-      setIsGenerating(false)
+      if (!cacheHit) setGeneratingMode(null)
     }
   }
 
@@ -88,7 +126,7 @@ export default function Screen2Adaptation({ story, onBack }) {
           onChange={updateParams}
           onPlayTeaser={() => runAdaptation('teaser')}
           onPlayFull={() => runAdaptation('full')}
-          isGenerating={isGenerating}
+          generatingMode={generatingMode}
         />
 
         {status && (

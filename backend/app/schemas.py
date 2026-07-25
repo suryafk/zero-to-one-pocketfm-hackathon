@@ -133,5 +133,6 @@ class AdaptResponse(BaseModel):
     transformed_script: str
     teaser: Teaser
     voice: Optional[VoiceResponse] = None
+    teaser_voice: Optional[VoiceResponse] = None
     source_transcript: Optional[str] = None
     voice_style: Optional[VoiceStyle] = None

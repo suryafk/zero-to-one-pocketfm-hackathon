@@ -46,7 +46,7 @@ export function usePlayback() {
     }, 1000)
   }
 
-  function play(newTrack) {
+  async function play(newTrack) {
     clearFallback()
     setTrack(newTrack)
     setElapsed(0)
@@ -57,21 +57,33 @@ export function usePlayback() {
       audio.src = newTrack.audioUrl
       audio.currentTime = 0
       audio.volume = volume / 100
-      audio.play().catch(() => setIsPlaying(false)) // e.g. blocked until user gesture
-      setIsPlaying(true)
+      try {
+        await audio.play()
+        setIsPlaying(true)
+        return true
+      } catch {
+        setIsPlaying(false)
+        return false
+      }
     } else {
       // No real file yet — simulate progress, sped up ~6x so a multi-minute
       // episode is watchable in a demo.
       setIsPlaying(true)
       startFallbackTimer(newTrack)
+      return true
     }
   }
 
   function togglePause() {
     if (!track) return
     if (track.audioUrl && audioRef.current) {
-      if (isPlaying) audioRef.current.pause()
-      else audioRef.current.play()
+      if (isPlaying) {
+        audioRef.current.pause()
+        setIsPlaying(false)
+      } else {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
+      }
+      return
     } else if (isPlaying) {
       clearFallback()
     } else {
@@ -88,13 +100,19 @@ export function usePlayback() {
     const onLoadedMetadata = () => {
       if (Number.isFinite(audio.duration)) setDuration(audio.duration)
     }
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
     const onEnded = () => setIsPlaying(false)
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
     audio.addEventListener('ended', onEnded)
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate)
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
       audio.removeEventListener('ended', onEnded)
     }
   }, [])

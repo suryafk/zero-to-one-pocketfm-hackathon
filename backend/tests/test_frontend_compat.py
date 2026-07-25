@@ -1,12 +1,15 @@
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.main import app
+from app.schemas import PlotInvariants, Region, Teaser, VoiceResponse
 
 
 class FrontendCompatTests(unittest.TestCase):
@@ -41,6 +44,96 @@ class FrontendCompatTests(unittest.TestCase):
         self.assertIsInstance(data["invariants"], list)
         self.assertIsInstance(data["teaser"], dict)
         self.assertIsInstance(data["fullEpisode"], dict)
+
+    def test_frontend_adapt_returns_distinct_teaser_audio(self) -> None:
+        synthesized_texts = []
+
+        def synthesize(text, region, **_kwargs):
+            synthesized_texts.append(text)
+            audio = "ZnVsbA==" if len(synthesized_texts) == 1 else "dGVhc2Vy"
+            return VoiceResponse(
+                provider="test",
+                region=region,
+                voice_id="test-voice",
+                audio_format="mp3",
+                audio_base64=audio,
+            )
+
+        with (
+            patch("app.routers.frontend_compat.get_settings", return_value=SimpleNamespace(openai_api_key=None)),
+            patch("app.routers.frontend_compat.voice_synth.synthesize", side_effect=synthesize),
+        ):
+            response = self.client.post(
+                "/api/adapt",
+                json={
+                    "storyId": "shadow-of-mumbai",
+                    "genre": "Thriller",
+                    "culture": "Rural Bhojpuri",
+                    "language": "Hindi",
+                    "synthesizeVoice": True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["fullEpisode"]["audioUrl"], "data:audio/mp3;base64,ZnVsbA==")
+        self.assertEqual(data["teaser"]["audioUrl"], "data:audio/mp3;base64,dGVhc2Vy")
+        self.assertEqual(len(synthesized_texts), 2)
+        self.assertIn("Who really wrote the letter", synthesized_texts[1])
+
+    def test_native_adapt_returns_teaser_voice(self) -> None:
+        invariants = PlotInvariants(
+            inciting_incident="A letter returns.",
+            key_plot_beats="Discovery and confrontation.",
+            character_motivations="Find the truth.",
+            climax="The writer is revealed.",
+            narrative_resolution="The mystery is resolved.",
+        )
+        teaser = Teaser(
+            hook="The letter came back.",
+            rising_tension="Every clue points home.",
+            cliffhanger="Who sent it?",
+        )
+        voices = [
+            VoiceResponse(
+                provider="test",
+                region=Region.rural_bhojpuri,
+                voice_id="test-voice",
+                audio_format="mp3",
+                audio_base64="ZnVsbA==",
+            ),
+            VoiceResponse(
+                provider="test",
+                region=Region.rural_bhojpuri,
+                voice_id="test-voice",
+                audio_format="mp3",
+                audio_base64="dGVhc2Vy",
+            ),
+        ]
+
+        with (
+            patch("app.routers.adapt.plot_anchor.extract_invariants", return_value=invariants),
+            patch("app.routers.adapt.transformer.transform_story", return_value="The adapted full episode."),
+            patch("app.routers.adapt.teaser_service.generate_teaser", return_value=teaser),
+            patch("app.routers.adapt.voice_synth.synthesize", side_effect=voices) as synthesize,
+        ):
+            response = self.client.post(
+                "/api/v1/adapt",
+                data={
+                    "story_text": "A sufficiently long source story for adaptation.",
+                    "genre": "Thriller",
+                    "region": "Rural Bhojpuri",
+                    "language": "Hindi",
+                    "synthesize_voice": "true",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["voice"]["audio_base64"], "ZnVsbA==")
+        self.assertEqual(data["teaser_voice"]["audio_base64"], "dGVhc2Vy")
+        self.assertEqual(synthesize.call_count, 2)
+        self.assertEqual(synthesize.call_args_list[1].kwargs["text"], "The letter came back.\n\nEvery clue points home.\n\nWho sent it?")
 
     def test_native_adapt_route_is_registered_at_documented_path(self) -> None:
         route_paths = {

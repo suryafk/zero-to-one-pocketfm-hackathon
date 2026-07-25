@@ -38,7 +38,7 @@ async function tryFetch(path, options) {
   }
 }
 
-async function tryAudioAdaptation({ story, genre, culture, language, synthesizeVoice, voiceStyle }) {
+async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle }) {
   try {
     console.info('[CultureShift] Audio adaptation started', {
       fileName: story.sourceAudioFile.name,
@@ -46,14 +46,14 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
       genre,
       culture,
       language,
-      synthesizeVoice,
+      synthesizeVoice: true,
     })
     const body = new FormData()
     body.append('audio_file', story.sourceAudioFile)
     body.append('genre', genre)
     body.append('region', culture)
     body.append('language', language)
-    body.append('synthesize_voice', String(synthesizeVoice))
+    body.append('synthesize_voice', 'true')
     Object.entries(voiceStyle).forEach(([key, value]) => body.append(key, value))
 
     console.info('[CultureShift] Uploading MP3 for transcription and adaptation')
@@ -65,10 +65,11 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
       adaptedScriptCharacters: data.transformed_script?.length ?? 0,
       voiceProvider: data.voice?.provider,
     })
-    const voice = data.voice
-    const audioUrl = voice?.audio_url || (voice?.audio_base64
+    const voiceToAudioUrl = (voice) => voice?.audio_url || (voice?.audio_base64
       ? `data:audio/${voice.audio_format};base64,${voice.audio_base64}`
       : undefined)
+    const audioUrl = voiceToAudioUrl(data.voice)
+    const teaserAudioUrl = voiceToAudioUrl(data.teaser_voice)
 
     const result = {
       invariants: Object.keys(data.invariants).map((key) => ({
@@ -82,7 +83,7 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
       culture: data.region,
       language,
       transcript: data.source_transcript,
-      teaser: { label: '30s Custom Teaser', durationSeconds: 45, audioUrl: undefined },
+      teaser: { label: '30s Custom Teaser', durationSeconds: 45, audioUrl: teaserAudioUrl },
       fullEpisode: { label: 'Full Adapted Episode', durationSeconds: 0, audioUrl },
       generationSeconds: 0,
       transformedScript: data.transformed_script,
@@ -92,7 +93,10 @@ async function tryAudioAdaptation({ story, genre, culture, language, synthesizeV
         cliffhanger: data.teaser?.cliffhanger,
       },
     }
-    console.info('[CultureShift] Adapted audio ready for player', { audioGenerated: Boolean(audioUrl) })
+    console.info('[CultureShift] Adapted audio ready for player', {
+      fullAudioGenerated: Boolean(audioUrl),
+      teaserAudioGenerated: Boolean(teaserAudioUrl),
+    })
     return result
   } catch {
     console.error('[CultureShift] Audio adaptation failed')
@@ -128,11 +132,10 @@ export async function generateAdaptation({
   culture,
   language,
   customPrompt,
-  synthesizeVoice = true,
 }) {
   const voiceStyle = deriveVoiceStyle(genre, culture)
   if (story.sourceAudioFile) {
-    const audioResult = await tryAudioAdaptation({ story, genre, culture, language, synthesizeVoice, voiceStyle })
+    const audioResult = await tryAudioAdaptation({ story, genre, culture, language, voiceStyle })
     if (audioResult) return audioResult
     throw new Error('The audio upload could not be transcribed or synthesized. Check the backend and OpenAI configuration, then try again.')
   }
@@ -145,7 +148,7 @@ export async function generateAdaptation({
       culture,
       language,
       customPrompt,
-      synthesizeVoice,
+      synthesizeVoice: true,
       voiceStyle,
     }),
   })

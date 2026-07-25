@@ -107,6 +107,7 @@ async def adapt(
         raise HTTPException(status_code=502, detail=f"Speech-to-text failed: {exc}") from exc
 
     voice = None
+    teaser_voice = None
     if synthesize_voice:
         logger.info("Voice synthesis started | script_characters=%s accent=%s tone=%s", len(transformed_script), voice_style.accent, voice_style.tone)
         try:
@@ -115,10 +116,21 @@ async def adapt(
                 region=region,
                 voice_style=voice_style,
                 language=language,
+                genre=genre,
+            )
+            teaser_voice = voice_synth.synthesize(
+                text="\n\n".join((teaser.hook, teaser.rising_tension, teaser.cliffhanger)),
+                region=region,
+                voice_style=voice_style,
+                language=language,
+                genre=genre,
             )
             logger.info(
-                "Voice synthesis completed | provider=%s format=%s audio_generated=%s",
-                voice.provider, voice.audio_format, bool(voice.audio_url or voice.audio_base64),
+                "Voice synthesis completed | provider=%s format=%s full_audio_generated=%s teaser_audio_generated=%s",
+                voice.provider,
+                voice.audio_format,
+                bool(voice.audio_url or voice.audio_base64),
+                bool(teaser_voice.audio_url or teaser_voice.audio_base64),
             )
         except Exception as exc:
             logger.exception("Adaptation failed | voice synthesis error")
@@ -135,6 +147,7 @@ async def adapt(
         transformed_script=transformed_script,
         teaser=teaser,
         voice=voice,
+        teaser_voice=teaser_voice,
         source_transcript=transcript,
         voice_style=voice_style,
     )
