@@ -15,6 +15,7 @@ def generate_teaser(payload: TeaserRequest) -> TeaserResponse:
             transformed_script=payload.transformed_script,
             genre=payload.genre,
             region=payload.region,
+            target_language=payload.target_language,
         )
         print("Teaser generated successfully.")
     except LLMError as exc:

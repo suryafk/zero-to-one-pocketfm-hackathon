@@ -97,6 +97,7 @@ async def adapt(
             transformed_script=transformed_script,
             genre=genre,
             region=region,
+            target_language=language,
         )
         logger.info("Step 4/4: teaser generation completed")
     except LLMError as exc:

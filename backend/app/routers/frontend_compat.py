@@ -172,6 +172,7 @@ def adapt_frontend(payload: dict) -> dict:
                 transformed_script=transformed_script,
                 genre=genre,
                 region=region,
+                target_language=language_value,
             )
         else:
             raise LLMError("OPENAI_API_KEY is not set.")
@@ -238,10 +239,7 @@ def adapt_frontend(payload: dict) -> dict:
         elif teaser_voice.audio_base64:
             teaser_audio_url = f"data:audio/{teaser_voice.audio_format};base64,{teaser_voice.audio_base64}"
 
-    prompt_suffix = f" ({custom_prompt.strip().rstrip('.')})" if custom_prompt.strip() else ""
-    adapted_quote = (
-        f"{story['title'].split(' ').pop()} {('crept through' if genre == Genre.horror else 'moved carefully through' if genre == Genre.thriller else 'stumbled through' if genre == Genre.comedy else 'lingered in')} the {culture_value.lower()} quarter, and the air felt charged with tension{prompt_suffix}."
-    )
+    adapted_quote = transformed_script[:280].strip()
 
     print(f"Frontend adaptation complete in {generation_seconds}s.")
     return {

@@ -82,6 +82,7 @@ class TeaserRequest(BaseModel):
     transformed_script: str = Field(..., min_length=20)
     genre: Genre
     region: Region
+    target_language: str = "English"
 
 
 class TeaserResponse(BaseModel):
