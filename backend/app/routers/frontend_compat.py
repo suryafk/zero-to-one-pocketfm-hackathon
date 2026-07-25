@@ -197,11 +197,24 @@ def adapt_frontend(payload: dict) -> dict:
     generation_seconds = round(time.perf_counter() - start, 1)
 
     voice = None
+    teaser_voice = None
     if payload.get("synthesizeVoice"):
         try:
             print(f"Voice synthesis requested for region: {region.value}")
             voice = voice_synth.synthesize(
                 text=transformed_script,
+                region=region,
+                voice_style=voice_style,
+                language=language_value,
+                genre=genre,
+            )
+            teaser_parts = (
+                (teaser["hook"], teaser["rising_tension"], teaser["cliffhanger"])
+                if isinstance(teaser, dict)
+                else (teaser.hook, teaser.rising_tension, teaser.cliffhanger)
+            )
+            teaser_voice = voice_synth.synthesize(
+                text="\n\n".join(teaser_parts),
                 region=region,
                 voice_style=voice_style,
                 language=language_value,
@@ -217,6 +230,13 @@ def adapt_frontend(payload: dict) -> dict:
             voice_audio_url = voice.audio_url
         elif voice.audio_base64:
             voice_audio_url = f"data:audio/{voice.audio_format};base64,{voice.audio_base64}"
+
+    teaser_audio_url = None
+    if teaser_voice:
+        if teaser_voice.audio_url:
+            teaser_audio_url = teaser_voice.audio_url
+        elif teaser_voice.audio_base64:
+            teaser_audio_url = f"data:audio/{teaser_voice.audio_format};base64,{teaser_voice.audio_base64}"
 
     prompt_suffix = f" ({custom_prompt.strip().rstrip('.')})" if custom_prompt.strip() else ""
     adapted_quote = (
@@ -244,7 +264,7 @@ def adapt_frontend(payload: dict) -> dict:
         "teaser": {
             "label": "30s Custom Teaser",
             "durationSeconds": 45,
-            "audioUrl": None,
+            "audioUrl": teaser_audio_url,
         },
         "fullEpisode": {
             "label": "Full Adapted Episode",
@@ -253,6 +273,7 @@ def adapt_frontend(payload: dict) -> dict:
         },
         "generationSeconds": generation_seconds,
         "voice": voice,
+        "teaserVoice": teaser_voice,
         "voiceStyle": voice_style.model_dump(),
         "transformedScript": transformed_script,
         "teaserDetails": {

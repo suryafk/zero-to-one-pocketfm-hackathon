@@ -9,8 +9,9 @@ export default function AdaptationControls({
   onChange,
   onPlayTeaser,
   onPlayFull,
-  isGenerating,
+  generatingMode,
 }) {
+  const isGenerating = Boolean(generatingMode)
   return (
     <section className="controls-panel" aria-label="Adaptation controls and custom modulation">
       <h4>
@@ -63,11 +64,13 @@ export default function AdaptationControls({
       </label>
 
       <div className="action-row">
-        <button className="cta-gradient" onClick={onPlayTeaser} disabled={isGenerating}>
-          <BoltIcon /> {isGenerating ? 'Adapting…' : 'Play 30s Teaser'}
+        <button className="cta-gradient" onClick={onPlayTeaser} disabled={isGenerating} aria-busy={generatingMode === 'teaser'}>
+          {generatingMode === 'teaser' ? <span className="button-loader" aria-hidden="true" /> : <BoltIcon />}
+          {generatingMode === 'teaser' ? 'Creating teaser…' : 'Play 30s Teaser'}
         </button>
-        <button className="cta-solid" onClick={onPlayFull} disabled={isGenerating}>
-          <HeadphonesIcon /> {isGenerating ? 'Adapting…' : 'Play Full Story'}
+        <button className="cta-solid" onClick={onPlayFull} disabled={isGenerating} aria-busy={generatingMode === 'full'}>
+          {generatingMode === 'full' ? <span className="button-loader" aria-hidden="true" /> : <HeadphonesIcon />}
+          {generatingMode === 'full' ? 'Creating full story…' : 'Play Full Story'}
         </button>
       </div>
     </section>
