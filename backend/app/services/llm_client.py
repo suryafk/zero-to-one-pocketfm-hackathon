@@ -24,11 +24,13 @@ class LLMError(RuntimeError):
 
 def _client() -> openai.OpenAI:
     settings = get_settings()
-    if not settings.openai_api_key:
+    api_key = settings.openai_api_key.strip()
+    if not api_key or api_key in {"sk-...", "your-api-key-here"}:
         raise LLMError(
-            "OPENAI_API_KEY is not set. Copy .env.example to .env and add your key."
+            "OPENAI_API_KEY is missing or still a placeholder. "
+            "Add a valid key to backend/.env and restart the server."
         )
-    return openai.OpenAI(api_key=settings.openai_api_key)
+    return openai.OpenAI(api_key=api_key)
 
 
 def call_json(system_prompt: str, user_prompt: str, max_tokens: int = 1200) -> dict[str, Any]:
