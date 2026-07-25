@@ -3,7 +3,7 @@ import Header from './Header.jsx'
 import FeaturedOriginal from './FeaturedOriginal.jsx'
 import StoryCard from './StoryCard.jsx'
 
-export default function Screen1Library({ stories, onSelectStory }) {
+export default function Screen1Library({ stories, onSelectStory, onUploadStory, uploadError }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [genreFilter, setGenreFilter] = useState('All')
 
@@ -28,6 +28,27 @@ export default function Screen1Library({ stories, onSelectStory }) {
       <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
       <main className="library-body">
+        <section className="upload-story-card" aria-labelledby="upload-story-heading">
+          <div>
+            <span className="featured-tag">Your story</span>
+            <h2 id="upload-story-heading">Upload a story to adapt and listen</h2>
+            <p>Choose a PDF, text, Word document, or MP3. It will open with the same genre, cultural flavour, language, and listening controls.</p>
+          </div>
+          <label className="upload-story-button">
+            Upload story or audio
+            <input
+              type="file"
+              accept=".pdf,.txt,.doc,.docx,.mp3,application/pdf,text/plain,audio/mpeg,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => {
+                const [file] = event.target.files
+                if (file) onUploadStory(file)
+                event.target.value = ''
+              }}
+            />
+          </label>
+          {uploadError && <p className="upload-error" role="alert">{uploadError}</p>}
+        </section>
+
         {featured && <FeaturedOriginal story={featured} onSelect={onSelectStory} />}
 
         <div className="trending-heading">
