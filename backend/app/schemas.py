@@ -1,0 +1,122 @@
+"""
+Pydantic models shared across routers.
+
+These map directly onto the feature contracts in the BRD:
+  - PlotInvariants        -> Feature 1 output
+  - TransformResponse     -> Feature 2 & 3 output
+  - Teaser / TeaserResponse -> Feature 5 output
+  - VoiceRequest/Response -> Feature 4 (stubbed TTS layer)
+  - AdaptRequest/Response -> full pipeline (Entertainment CEO Agent orchestration)
+"""
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+
+class Genre(str, Enum):
+    horror = "Horror"
+    comedy = "Comedy"
+    thriller = "Thriller"
+    romance = "Romance"
+    sci_fi = "Sci-Fi"
+    drama = "Drama"
+
+
+class Region(str, Enum):
+    rural_bhojpuri = "Rural Bhojpuri"
+    texas_country = "Texas Country"
+    south_london_grime = "South London Grime"
+    street_lagos_pidgin = "Street Lagos Pidgin"
+    mumbai_tapri = "Mumbai Tapri"
+
+
+# ---------- Feature 1: Core Plot Anchor ----------
+
+class PlotInvariants(BaseModel):
+    inciting_incident: str
+    key_plot_beats: str
+    character_motivations: str
+    climax: str
+    narrative_resolution: str
+
+
+class PlotAnchorRequest(BaseModel):
+    story_text: str = Field(..., min_length=20, description="Raw base story text or transcript")
+
+
+class PlotAnchorResponse(BaseModel):
+    invariants: PlotInvariants
+
+
+# ---------- Feature 2 & 3: Multi-Axis Transformation + Idiom Mapper ----------
+
+class TransformRequest(BaseModel):
+    story_text: str = Field(..., min_length=20)
+    genre: Genre
+    region: Region
+    invariants: Optional[PlotInvariants] = Field(
+        default=None,
+        description="If omitted, the server will extract invariants first (Feature 1) before transforming.",
+    )
+
+
+class TransformResponse(BaseModel):
+    invariants: PlotInvariants
+    genre: Genre
+    region: Region
+    transformed_script: str
+
+
+# ---------- Feature 5: Dynamic Suspense Teaser ----------
+
+class Teaser(BaseModel):
+    hook: str
+    rising_tension: str
+    cliffhanger: str
+
+
+class TeaserRequest(BaseModel):
+    transformed_script: str = Field(..., min_length=20)
+    genre: Genre
+    region: Region
+
+
+class TeaserResponse(BaseModel):
+    teaser: Teaser
+
+
+# ---------- Feature 4: Regional Voice & Accent Synthesizer ----------
+
+class VoiceRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    region: Region
+    voice_id: Optional[str] = Field(default=None, description="Override the default voice mapped to this region")
+
+
+class VoiceResponse(BaseModel):
+    provider: str
+    region: Region
+    voice_id: str
+    audio_format: str
+    audio_base64: Optional[str] = None
+    audio_url: Optional[str] = None
+    note: Optional[str] = None
+
+
+# ---------- Full pipeline (Entertainment CEO Agent) ----------
+
+class AdaptRequest(BaseModel):
+    story_text: str = Field(..., min_length=20)
+    genre: Genre
+    region: Region
+    synthesize_voice: bool = False
+
+
+class AdaptResponse(BaseModel):
+    invariants: PlotInvariants
+    genre: Genre
+    region: Region
+    transformed_script: str
+    teaser: Teaser
+    voice: Optional[VoiceResponse] = None
