@@ -13,6 +13,7 @@ TTS_PROVIDER to "elevenlabs" or "azure" and fill in the matching key in
 """
 import base64
 
+import openai
 import httpx
 
 from app.config import get_settings
@@ -22,11 +23,21 @@ from app.schemas import Region, VoiceResponse
 # provider once one is configured -- these are just stable, readable keys
 # so the rest of the app has something concrete to reference.
 REGION_VOICE_MAP: dict[Region, str] = {
-    Region.rural_bhojpuri: "bhojpuri_rural_m01",
-    Region.texas_country: "texas_country_f01",
-    Region.south_london_grime: "s_london_grime_m01",
-    Region.street_lagos_pidgin: "lagos_pidgin_m01",
-    Region.mumbai_tapri: "mumbai_tapri_f01",
+    Region.rural_bhojpuri: "NhwTI3t2DXME1ogDNGJX",
+    Region.texas_country: "VAnZB441uRGQ8uoZunqz",
+    Region.south_london_grime: "Oe8Lhg3t63j9BsrTQBjx",
+    Region.street_lagos_pidgin: "1aJyZpkt0vxhGPBnPyrs",
+    Region.mumbai_tapri: "lbmRnV8aAoM7XNi7APGH",
+}
+
+# Example voice ID mapping for OpenAI TTS. The available voices are 'alloy',
+# 'echo', 'fable', 'onyx', 'nova', and 'shimmer'. This is a sample mapping.
+OPENAI_REGION_VOICE_MAP: dict[Region, str] = {
+    Region.rural_bhojpuri: "onyx",
+    Region.texas_country: "nova",
+    Region.south_london_grime: "shimmer",
+    Region.street_lagos_pidgin: "alloy",
+    Region.mumbai_tapri: "echo",
 }
 
 
@@ -51,6 +62,7 @@ def _elevenlabs_synthesize(text: str, region: Region, voice_id: str) -> VoiceRes
     if not settings.elevenlabs_api_key:
         raise RuntimeError("ELEVENLABS_API_KEY is not set in .env")
 
+    print(f"Calling ElevenLabs TTS API for voice_id: {voice_id}")
     resp = httpx.post(
         f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
         headers={
@@ -60,6 +72,7 @@ def _elevenlabs_synthesize(text: str, region: Region, voice_id: str) -> VoiceRes
         json={"text": text, "model_id": "eleven_multilingual_v2"},
         timeout=30.0,
     )
+    print(f"ElevenLabs TTS response status: {resp.status_code}")
     resp.raise_for_status()
     audio_b64 = base64.b64encode(resp.content).decode("utf-8")
     return VoiceResponse(
@@ -80,6 +93,7 @@ def _azure_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse
 <voice name='{voice_id}'>{text}</voice>
 </speak>"""
 
+    print(f"Calling Azure TTS API for voice_id: {voice_id}")
     resp = httpx.post(
         f"https://{settings.azure_speech_region}.tts.speech.microsoft.com/cognitiveservices/v1",
         headers={
@@ -90,6 +104,7 @@ def _azure_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse
         content=ssml.encode("utf-8"),
         timeout=30.0,
     )
+    print(f"Azure TTS response status: {resp.status_code}")
     resp.raise_for_status()
     audio_b64 = base64.b64encode(resp.content).decode("utf-8")
     return VoiceResponse(
@@ -101,12 +116,44 @@ def _azure_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse
     )
 
 
+def _openai_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse:
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set in .env")
+
+    client = openai.OpenAI(api_key=settings.openai_api_key)
+
+    try:
+        resp = client.audio.speech.create(
+            model=settings.openai_tts_model,
+            voice=voice_id,
+            input=text,
+            response_format="mp3",
+        )
+    except openai.APIError as exc:
+        raise RuntimeError(f"OpenAI TTS API call failed: {exc}") from exc
+
+    audio_b64 = base64.b64encode(resp.content).decode("utf-8")
+    return VoiceResponse(
+        provider="openai",
+        region=region,
+        voice_id=voice_id,
+        audio_format="mp3",
+        audio_base64=audio_b64,
+    )
+
+
 def synthesize(text: str, region: Region, voice_id: str | None = None) -> VoiceResponse:
     settings = get_settings()
-    resolved_voice_id = voice_id or REGION_VOICE_MAP.get(region, "default")
 
+    print(f"Synthesizing speech with provider: {settings.tts_provider}")
     if settings.tts_provider == "elevenlabs":
+        resolved_voice_id = voice_id or REGION_VOICE_MAP.get(region, "default")
         return _elevenlabs_synthesize(text, region, resolved_voice_id)
-    if settings.tts_provider == "azure":
-        return _azure_synthesize(text, region, resolved_voice_id)
+    if settings.tts_provider == "openai":
+        resolved_voice_id = voice_id or OPENAI_REGION_VOICE_MAP.get(region, "alloy")
+        return _openai_synthesize(text, region, resolved_voice_id)
+
+    # Default to mock if no provider is matched or if it's explicitly set to "mock"
+    resolved_voice_id = voice_id or REGION_VOICE_MAP.get(region, "default")
     return _mock_synthesize(text, region, resolved_voice_id)

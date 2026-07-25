@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import adapt, options, plot_anchor, teaser, transform, voice
-from app.routers.frontend_compat import router as frontend_compat_router
+from app.routers import adapt, frontend_compat, options, plot_anchor, teaser, transform, voice
 
 settings = get_settings()
 
@@ -17,6 +16,8 @@ origins = ["*"] if settings.cors_allow_origins.strip() == "*" else [
     o.strip() for o in settings.cors_allow_origins.split(",") if o.strip()
 ]
 
+print(f"CORS enabled for origins: {origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -25,13 +26,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+async def startup_event():
+    print("Application startup complete.")
+
+
 app.include_router(plot_anchor.router)
 app.include_router(transform.router)
 app.include_router(teaser.router)
 app.include_router(voice.router)
 app.include_router(adapt.router)
+app.include_router(frontend_compat.router)
 app.include_router(options.router)
-app.include_router(frontend_compat_router)
 
 
 @app.get("/health", tags=["Health"])

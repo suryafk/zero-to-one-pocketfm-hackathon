@@ -9,6 +9,8 @@ router = APIRouter(prefix="/api/v1/voice", tags=["Feature 4 · Regional Voice Sy
 @router.post("", response_model=VoiceResponse)
 def synthesize(payload: VoiceRequest) -> VoiceResponse:
     try:
+        print(f"Synthesizing voice for region '{payload.region.value}'")
         return voice_synth.synthesize(text=payload.text, region=payload.region, voice_id=payload.voice_id)
     except Exception as exc:  # provider errors (httpx, missing keys, etc.)
+        print(f"Error in voice synthesis: {exc}")
         raise HTTPException(status_code=502, detail=str(exc)) from exc

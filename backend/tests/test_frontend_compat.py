@@ -42,6 +42,16 @@ class FrontendCompatTests(unittest.TestCase):
         self.assertIsInstance(data["teaser"], dict)
         self.assertIsInstance(data["fullEpisode"], dict)
 
+    def test_native_adapt_route_is_registered_at_documented_path(self) -> None:
+        route_paths = {
+            route.path
+            for route in app.routes
+            if "POST" in getattr(route, "methods", set())
+        }
+
+        self.assertIn("/api/v1/adapt", route_paths)
+        self.assertNotIn("/api/v1/adapt/api/v1/adapt", route_paths)
+
 
 if __name__ == "__main__":
     unittest.main()
