@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o"
     openai_tts_model: str = "gpt-4o-mini-tts"
     openai_stt_model: str = "gpt-4o-transcribe"
+    openai_video_model: str = "sora-2"
+    # Keep disabled outside controlled demos to prevent accidental video spend.
+    video_generation_enabled: bool = False
 
     # --- TTS layer (Feature 4) ---
     # Supported values: "openai", "elevenlabs", and "mock".

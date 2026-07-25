@@ -536,6 +536,34 @@ button:disabled {
   gap: 16px;
 }
 
+.video-trailer-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.75fr) minmax(320px, 1.25fr);
+  gap: 22px;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--surface), #171521);
+}
+
+.video-kicker { color: var(--green-accent); font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; }
+.video-trailer-copy h4 { margin: 8px 0; font-size: 1.15rem; }
+.video-trailer-copy p { margin: 0 0 16px; color: var(--text-secondary); font-size: 0.82rem; line-height: 1.5; }
+.trailer-generate { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; }
+.trailer-locked-note { display: block; margin-top: 8px; color: var(--text-secondary); font-size: 0.7rem; }
+.trailer-complete { display: block; color: var(--green-accent); font-size: 0.74rem; line-height: 1.45; }
+.trailer-error { margin-top: 10px !important; color: #ff7b72 !important; }
+.video-preview-shell { min-width: 0; }
+.video-preview-shell video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; background: #07080b; }
+.video-placeholder { display: flex; aspect-ratio: 16 / 9; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); border-radius: 10px; color: var(--text-secondary); background: radial-gradient(circle at center, color-mix(in srgb, var(--accent) 18%, transparent), #0f1117 68%); font-size: 0.78rem; }
+.video-placeholder > svg { width: 32px; height: 32px; color: var(--accent); }
+.trailer-progress { width: 65%; height: 4px; overflow: hidden; border-radius: 999px; background: #2a2e3d; }
+.trailer-progress span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 120ms linear; }
+.trailer-download { display: inline-block; margin-top: 9px; color: var(--green-accent); font-size: 0.78rem; text-decoration: none; }
+.trailer-download:hover { text-decoration: underline; }
+.trailer-provider { float: right; margin-top: 9px; color: var(--text-secondary); font-size: 0.7rem; }
+
 .integrity-panel,
 .idiom-panel {
   border: 1px solid var(--border);
@@ -704,6 +732,7 @@ button:disabled {
   .result-grid {
     grid-template-columns: 1fr;
   }
+  .video-trailer-panel { grid-template-columns: 1fr; }
   .story-detail {
     flex-direction: column;
   }

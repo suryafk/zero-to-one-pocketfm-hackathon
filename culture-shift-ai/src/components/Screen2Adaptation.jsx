@@ -6,6 +6,7 @@ import AdaptationControls from './AdaptationControls.jsx'
 import PlotIntegrityPanel from './PlotIntegrityPanel.jsx'
 import IdiomMappingPreview from './IdiomMappingPreview.jsx'
 import PlayerBar from './PlayerBar.jsx'
+import VideoTrailerPanel from './VideoTrailerPanel.jsx'
 import { BackIcon } from './Icons.jsx'
 
 export default function Screen2Adaptation({ story, onBack }) {
@@ -22,6 +23,8 @@ export default function Screen2Adaptation({ story, onBack }) {
 
   function updateParams(patch) {
     setParams((prev) => ({ ...prev, ...patch }))
+    setResult(null)
+    setStatus('Customizations changed — generate the adaptation again to create a new trailer.')
   }
 
   async function runAdaptation(mode) {
@@ -95,10 +98,13 @@ export default function Screen2Adaptation({ story, onBack }) {
         )}
 
         {result && (
-          <div className="result-grid">
-            <PlotIntegrityPanel invariants={result.invariants} consistencyScore={result.consistencyScore} />
-            <IdiomMappingPreview mappings={result.idiomMappings} />
-          </div>
+          <>
+            <VideoTrailerPanel story={story} result={result} accent={accent} />
+            <div className="result-grid">
+              <PlotIntegrityPanel invariants={result.invariants} consistencyScore={result.consistencyScore} />
+              <IdiomMappingPreview mappings={result.idiomMappings} />
+            </div>
+          </>
         )}
       </main>
 
