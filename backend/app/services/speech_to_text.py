@@ -1,7 +1,7 @@
 """
 Speech-to-Text (STT) service for transcribing audio input.
 
-This module integrates with an STT provider (initially ElevenLabs) to
+This module integrates with an STT provider (OpenAI by default) to
 convert user-provided audio into text, which can then be fed into the
 story adaptation pipeline.
 """
@@ -48,27 +48,36 @@ def _elevenlabs_transcribe(audio_file: UploadFile) -> str:
         raise STTError(f"Failed to process STT response: {exc}") from exc
 
 
-# --- Commented out OpenAI STT implementation ---
-# def _openai_transcribe(audio_file: UploadFile) -> str:
-#     """Calls the OpenAI Whisper API for Speech-to-Text."""
-#     settings = get_settings()
-#     if not settings.openai_api_key:
-#         raise STTError("OPENAI_API_KEY is not set in .env")
-#
-#     client = openai.OpenAI(api_key=settings.openai_api_key)
-#
-#     try:
-#         # The file object must be passed directly to the SDK.
-#         # Note: The file handle will be closed by FastAPI after the request.
-#         transcription = client.audio.transcriptions.create(
-#             model="whisper-1",
-#             file=audio_file.file,
-#         )
-#         return transcription.text
-#     except openai.APIError as exc:
-#         raise STTError(f"OpenAI STT API call failed: {exc}") from exc
-#     except Exception as exc:
-#         raise STTError(f"Failed to process OpenAI STT response: {exc}") from exc
+def _openai_transcribe(audio_file: UploadFile) -> str:
+    """Transcribe a completed uploaded audio file with OpenAI Audio API."""
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise STTError("OPENAI_API_KEY is not set in .env")
+
+    try:
+        # UploadFile may already have been inspected, so make sure the SDK
+        # reads the complete stream from its beginning.
+        audio_file.file.seek(0)
+        transcription = openai.OpenAI(api_key=settings.openai_api_key).audio.transcriptions.create(
+            model=settings.openai_stt_model,
+            file=(
+                audio_file.filename or "uploaded-story.mp3",
+                audio_file.file,
+                audio_file.content_type or "audio/mpeg",
+            ),
+            response_format="json",
+            prompt="This is a narrated story. Preserve names, dialogue, punctuation, and the original language.",
+        )
+        text = (transcription.text or "").strip()
+        if not text:
+            raise STTError("OpenAI returned an empty transcript.")
+        return text
+    except openai.APIError as exc:
+        raise STTError(f"OpenAI transcription failed: {exc}") from exc
+    except STTError:
+        raise
+    except Exception as exc:
+        raise STTError(f"Failed to process OpenAI transcription: {exc}") from exc
 
 
 def transcribe(audio_file: UploadFile) -> str:
@@ -77,9 +86,9 @@ def transcribe(audio_file: UploadFile) -> str:
     provider = settings.stt_provider
 
     print(f"Transcribing audio using '{provider}' provider.")
+    if provider == "openai":
+        return _openai_transcribe(audio_file)
     if provider == "elevenlabs":
         return _elevenlabs_transcribe(audio_file)
-    # if provider == "openai":
-    #     return _openai_transcribe(audio_file)
 
     raise NotImplementedError(f"STT provider '{provider}' is not supported.")

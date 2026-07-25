@@ -142,7 +142,18 @@ def adapt_frontend(payload: dict) -> dict:
     try:
         region = Region(culture_value)
     except ValueError:
-        region = Region.mumbai_tapri
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported Cultural Flavour: {culture_value}",
+        )
+
+    # The frontend derives these seven narration controls and sends them as
+    # `voiceStyle`. Fill any omitted control from the target genre and culture.
+    voice_style = voice_synth.derive_voice_style(
+        genre,
+        region,
+        payload.get("voiceStyle") or {},
+    )
 
     settings = get_settings()
     start = time.perf_counter()
@@ -155,7 +166,7 @@ def adapt_frontend(payload: dict) -> dict:
                 genre=genre,
                 region=region,
                 invariants=invariants,
-
+                target_language=language_value,
             )
             teaser = teaser_service.generate_teaser(
                 transformed_script=transformed_script,
@@ -189,7 +200,13 @@ def adapt_frontend(payload: dict) -> dict:
     if payload.get("synthesizeVoice"):
         try:
             print(f"Voice synthesis requested for region: {region.value}")
-            voice = voice_synth.synthesize(text=transformed_script, region=region)
+            voice = voice_synth.synthesize(
+                text=transformed_script,
+                region=region,
+                voice_style=voice_style,
+                language=language_value,
+                genre=genre,
+            )
         except Exception as exc:
             print(f"Frontend compatibility: Voice synthesis failed: {exc}")
             raise HTTPException(status_code=502, detail=f"Voice synthesis failed: {exc}") from exc
@@ -236,6 +253,7 @@ def adapt_frontend(payload: dict) -> dict:
         },
         "generationSeconds": generation_seconds,
         "voice": voice,
+        "voiceStyle": voice_style.model_dump(),
         "transformedScript": transformed_script,
         "teaserDetails": {
             "hook": teaser["hook"] if isinstance(teaser, dict) else teaser.hook,

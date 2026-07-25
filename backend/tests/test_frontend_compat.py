@@ -52,6 +52,20 @@ class FrontendCompatTests(unittest.TestCase):
         self.assertIn("/api/v1/adapt", route_paths)
         self.assertNotIn("/api/v1/adapt/api/v1/adapt", route_paths)
 
+    def test_every_frontend_cultural_flavour_is_supported(self) -> None:
+        from app.schemas import Region
+
+        frontend_cultures = {
+            "Rural Bhojpuri",
+            "Mumbai Tapri",
+            "Texas Country",
+            "South London Grime",
+            "Street Lagos Pidgin",
+            "Seoul Underground",
+            "Rio Favela",
+        }
+        self.assertSetEqual(frontend_cultures, {region.value for region in Region})
+
 
 if __name__ == "__main__":
     unittest.main()
