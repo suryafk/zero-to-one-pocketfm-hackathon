@@ -81,6 +81,7 @@ export function runMockAdaptation({ story, genre, culture, language, customPromp
     consistencyScore: 100,
     idiomMappings: idioms.map(([from, to]) => ({ from, to })),
     adaptedQuote,
+    transformedScript: `${story.synopsis || story.quote} ${adaptedQuote} The protagonist faces mounting stakes while the central mystery remains unresolved.`,
     genre,
     culture,
     language,
@@ -92,6 +93,11 @@ export function runMockAdaptation({ story, genre, culture, language, customPromp
     // code needs to change.
     teaser: { label: '30s Custom Teaser', durationSeconds: 45, audioUrl: undefined },
     fullEpisode: { label: 'Full Adapted Episode', durationSeconds: 612, audioUrl: undefined },
+    teaserDetails: {
+      hook: adaptedQuote,
+      risingTension: `Every clue draws the listener deeper into this ${culture} ${genre.toLowerCase()} world.`,
+      cliffhanger: 'The truth is one heartbeat away — but who will survive hearing it?',
+    },
     generationSeconds: Math.round(generationSeconds * 10) / 10,
   }
 }
