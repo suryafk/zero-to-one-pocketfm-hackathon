@@ -148,6 +148,26 @@ button:disabled {
   margin: 0 auto;
 }
 
+.upload-story-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  border: 1px dashed rgba(48, 209, 88, 0.65);
+  border-radius: 16px;
+  background: linear-gradient(110deg, rgba(48, 209, 88, 0.1), transparent 52%), var(--surface);
+}
+
+.upload-story-card > div { flex: 1; min-width: 240px; }
+.upload-story-card .featured-tag { margin-bottom: 9px; color: var(--green-accent); border-color: rgba(48, 209, 88, 0.45); background: rgba(48, 209, 88, 0.1); }
+.upload-story-card h2 { margin: 0 0 7px; font-size: 1.15rem; }
+.upload-story-card p { margin: 0; color: var(--text-secondary); font-size: 0.87rem; line-height: 1.45; }
+.upload-story-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 11px 18px; border-radius: 10px; background: var(--green-accent); color: #0f1117; font-weight: 700; font-size: 0.87rem; cursor: pointer; white-space: nowrap; }
+.upload-story-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.upload-error { width: 100%; color: #ff8a84 !important; }
+
 .featured-card {
   position: relative;
   border: 1px solid var(--purple-accent);
@@ -719,4 +739,5 @@ button:disabled {
   .player-bar {
     padding: 10px 16px 14px;
   }
+  .upload-story-card { align-items: flex-start; }
 }

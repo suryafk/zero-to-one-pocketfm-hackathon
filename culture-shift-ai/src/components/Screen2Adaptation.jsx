@@ -30,7 +30,10 @@ export default function Screen2Adaptation({ story, onBack }) {
     try {
       const res = await generateAdaptation({ story, ...params })
       setResult(res)
-      const track = mode === 'teaser' ? res.teaser : res.fullEpisode
+      const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
+      const track = mode === 'full' && story.sourceAudioUrl
+        ? { ...generatedTrack, label: `Uploaded audio: ${story.title}`, audioUrl: story.sourceAudioUrl }
+        : generatedTrack
       playback.play(track)
       setStatus(`Generated in ${res.generationSeconds}s — playing ${track.label.toLowerCase()}.`)
     } catch (err) {
