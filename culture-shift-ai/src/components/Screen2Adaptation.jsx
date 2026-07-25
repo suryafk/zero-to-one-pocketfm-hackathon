@@ -20,6 +20,23 @@ function adaptationCacheKey(story, params) {
   })
 }
 
+function originalUploadTrailerRun(story) {
+  if (!story.sourceText) return []
+  const result = {
+    genre: story.originalGenre || 'Drama',
+    culture: story.originalCulture || 'Original upload',
+    language: 'Original',
+    transformedScript: story.sourceText,
+    adaptedQuote: story.quote,
+  }
+  return [{
+    id: `original-${story.id}`,
+    result,
+    params: { genre: result.genre, culture: result.culture, language: 'Original' },
+    autoStart: true,
+  }]
+}
+
 export default function Screen2Adaptation({ story, onBack }) {
   const [params, setParams] = useState({
     genre: genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror',
@@ -30,9 +47,29 @@ export default function Screen2Adaptation({ story, onBack }) {
   const [result, setResult] = useState(null)
   const [resultKey, setResultKey] = useState(null)
   const [generatingMode, setGeneratingMode] = useState(null)
-  const [adaptationRuns, setAdaptationRuns] = useState([])
+  const [adaptationRuns, setAdaptationRuns] = useState(() => originalUploadTrailerRun(story))
   const [status, setStatus] = useState('')
   const playback = usePlayback()
+
+  if (story.isExtracting) {
+    return (
+      <div className="screen screen-adaptation">
+        <div className="adaptation-topbar">
+          <button className="back-link" onClick={onBack}>
+            <BackIcon /> Back to Library
+          </button>
+          <span className="pocketfm-tag">PocketFM Web</span>
+        </div>
+        <main className="document-processing" aria-live="polite">
+          <div className="processing-spinner" aria-hidden="true" />
+          <span className="video-kicker">PREPARING YOUR STORY</span>
+          <h2>{story.title}</h2>
+          <p>Extracting readable text from <strong>{story.sourceFileName}</strong>…</p>
+          <small>Scanned PDFs may take longer while OCR reads each page.</small>
+        </main>
+      </div>
+    )
+  }
 
   function updateParams(patch) {
     setParams((prev) => ({ ...prev, ...patch }))
@@ -64,7 +101,12 @@ export default function Screen2Adaptation({ story, onBack }) {
         setResultKey(requestKey)
         setAdaptationRuns((runs) => [
           ...runs,
-          { id: `${Date.now()}-${runs.length}`, result: res, params: { ...params } },
+          {
+            id: `${Date.now()}-${runs.length}`,
+            result: res,
+            params: { ...params },
+            autoStart: Boolean(story.sourceText || story.sourceAudioFile),
+          },
         ])
       }
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
@@ -149,6 +191,7 @@ export default function Screen2Adaptation({ story, onBack }) {
                 accent={GENRE_ACCENTS[run.params.genre] || '#30D158'}
                 customization={run.params}
                 isLatest={index === adaptationRuns.length - 1}
+                autoStart={run.autoStart}
               />
             ))}
           </div>

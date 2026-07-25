@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { generateTrailerVideo } from '../utils/trailerGenerator.js'
 import { getVideoTrailer, getVideoTrailerCapability, startVideoTrailer, videoTrailerContentUrl } from '../api/adaptationApi.js'
 import { PlayIcon } from './Icons.jsx'
@@ -51,13 +51,44 @@ function StoryboardPreview({ scenes, accent, progress }) {
   )
 }
 
-export default function VideoTrailerPanel({ story, result, accent, customization, isLatest }) {
+function TrailerVideo({ videoUrl, storyTitle }) {
+  const [showEndCard, setShowEndCard] = useState(false)
+
+  function updateEndCard(event) {
+    const video = event.currentTarget
+    setShowEndCard(Number.isFinite(video.duration) && video.duration - video.currentTime <= 4)
+  }
+
+  return (
+    <div className="trailer-video-frame">
+      <video
+        src={videoUrl}
+        controls
+        autoPlay
+        playsInline
+        aria-label={`Animated trailer for ${storyTitle}`}
+        onTimeUpdate={updateEndCard}
+        onSeeked={updateEndCard}
+        onPlay={updateEndCard}
+      />
+      {showEndCard && (
+        <div className="trailer-end-card">
+          <span>THE STORY HAS ONLY JUST BEGUN</span>
+          <strong>Hear the complete story to know what happens next.</strong>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function VideoTrailerPanel({ story, result, accent, customization, isLatest, autoStart = false }) {
   const [videoUrl, setVideoUrl] = useState('')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
   const [provider, setProvider] = useState('')
   const [isEnabled, setIsEnabled] = useState(false)
   const [concept, setConcept] = useState(null)
+  const autoStartedRef = useRef(false)
   const isGenerating = progress > 0 && progress < 100 && !videoUrl
 
   useEffect(() => () => {
@@ -107,6 +138,12 @@ export default function VideoTrailerPanel({ story, result, accent, customization
     }
   }
 
+  useEffect(() => {
+    if (!isEnabled || !autoStart || autoStartedRef.current) return
+    autoStartedRef.current = true
+    generate()
+  }, [isEnabled, autoStart])
+
   if (!isEnabled) return null
 
   return (
@@ -126,7 +163,7 @@ export default function VideoTrailerPanel({ story, result, accent, customization
       <div className="video-preview-shell">
         {videoUrl ? (
           <>
-            <video src={videoUrl} controls autoPlay playsInline aria-label={`Animated trailer for ${story.title}`} />
+            <TrailerVideo videoUrl={videoUrl} storyTitle={story.title} />
             <a className="trailer-download" href={videoUrl} download={`${story.id || 'story'}-trailer.${provider === 'Local fallback' ? 'webm' : 'mp4'}`}>Download video</a>
             <span className="trailer-provider">Generated with {provider}</span>
           </>
