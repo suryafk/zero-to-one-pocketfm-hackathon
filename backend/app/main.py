@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers import adapt, options, plot_anchor, teaser, transform, voice
+from app.routers.frontend_compat import router as frontend_compat_router
 
 settings = get_settings()
 
@@ -30,6 +31,7 @@ app.include_router(teaser.router)
 app.include_router(voice.router)
 app.include_router(adapt.router)
 app.include_router(options.router)
+app.include_router(frontend_compat_router)
 
 
 @app.get("/health", tags=["Health"])
