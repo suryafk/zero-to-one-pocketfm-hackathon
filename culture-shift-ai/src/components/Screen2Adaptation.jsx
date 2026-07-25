@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { generateAdaptation } from '../api/adaptationApi.js'
 import { usePlayback } from '../hooks/usePlayback.js'
 import { GENRE_ACCENTS, genreOptions } from '../data/stories.js'
@@ -20,36 +20,29 @@ function adaptationCacheKey(story, params) {
   })
 }
 
-function originalUploadTrailerRun(story) {
-  if (!story.sourceText) return []
-  const result = {
-    genre: story.originalGenre || 'Drama',
-    culture: story.originalCulture || 'Original upload',
-    language: 'Original',
-    transformedScript: story.sourceText,
-    adaptedQuote: story.quote,
-  }
-  return [{
-    id: `original-${story.id}`,
-    result,
-    params: { genre: result.genre, culture: result.culture, language: 'Original' },
-    autoStart: true,
-  }]
-}
-
-export default function Screen2Adaptation({ story, onBack }) {
-  const [params, setParams] = useState({
+export default function Screen2Adaptation({ story, onBack, initialSession, onSessionChange }) {
+  const [params, setParams] = useState(() => initialSession?.params || ({
     genre: genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror',
     culture: 'Rural Bhojpuri',
     language: 'Hindi',
     customPrompt: '',
-  })
-  const [result, setResult] = useState(null)
-  const [resultKey, setResultKey] = useState(null)
+  }))
+  const [result, setResult] = useState(() => initialSession?.result || null)
+  const [resultKey, setResultKey] = useState(() => initialSession?.resultKey || null)
   const [generatingMode, setGeneratingMode] = useState(null)
-  const [adaptationRuns, setAdaptationRuns] = useState(() => originalUploadTrailerRun(story))
-  const [status, setStatus] = useState('')
+  const [adaptationRuns, setAdaptationRuns] = useState(() => initialSession?.adaptationRuns || [])
+  const [status, setStatus] = useState(() => initialSession?.status || '')
   const playback = usePlayback()
+
+  useEffect(() => {
+    if (!story.isExtracting) {
+      onSessionChange(story.id, { params, result, resultKey, adaptationRuns, status })
+    }
+  }, [story.id, story.isExtracting, params, result, resultKey, adaptationRuns, status, onSessionChange])
+
+  const saveTrailerState = useCallback((runId, trailer) => {
+    setAdaptationRuns((runs) => runs.map((run) => run.id === runId ? { ...run, trailer } : run))
+  }, [])
 
   if (story.isExtracting) {
     return (
@@ -64,8 +57,10 @@ export default function Screen2Adaptation({ story, onBack }) {
           <div className="processing-spinner" aria-hidden="true" />
           <span className="video-kicker">PREPARING YOUR STORY</span>
           <h2>{story.title}</h2>
-          <p>Extracting readable text from <strong>{story.sourceFileName}</strong>…</p>
-          <small>Scanned PDFs may take longer while OCR reads each page.</small>
+          <p>{story.processingType === 'audio' ? 'Transcribing' : 'Extracting readable text from'} <strong>{story.sourceFileName}</strong>…</p>
+          <small>{story.processingType === 'audio'
+            ? 'The transcript will be reused for every customization, audio track, and trailer.'
+            : 'Scanned PDFs may take longer while OCR reads each page.'}</small>
         </main>
       </div>
     )
@@ -105,7 +100,7 @@ export default function Screen2Adaptation({ story, onBack }) {
             id: `${Date.now()}-${runs.length}`,
             result: res,
             params: { ...params },
-            autoStart: Boolean(story.sourceText || story.sourceAudioFile),
+            autoStart: false,
           },
         ])
       }
@@ -191,7 +186,9 @@ export default function Screen2Adaptation({ story, onBack }) {
                 accent={GENRE_ACCENTS[run.params.genre] || '#30D158'}
                 customization={run.params}
                 isLatest={index === adaptationRuns.length - 1}
-                autoStart={run.autoStart}
+                autoStart={false}
+                initialTrailer={run.trailer}
+                onTrailerChange={(trailer) => saveTrailerState(run.id, trailer)}
               />
             ))}
           </div>

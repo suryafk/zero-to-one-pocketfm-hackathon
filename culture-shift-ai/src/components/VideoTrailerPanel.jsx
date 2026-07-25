@@ -51,7 +51,7 @@ function StoryboardPreview({ scenes, accent, progress }) {
   )
 }
 
-function TrailerVideo({ videoUrl, storyTitle }) {
+function TrailerVideo({ videoUrl, storyTitle, cliffhanger }) {
   const [showEndCard, setShowEndCard] = useState(false)
 
   function updateEndCard(event) {
@@ -73,7 +73,10 @@ function TrailerVideo({ videoUrl, storyTitle }) {
       />
       {showEndCard && (
         <div className="trailer-end-card">
-          <span>THE STORY HAS ONLY JUST BEGUN</span>
+          <div className="trailer-end-card-glow" aria-hidden="true" />
+          <span>POCKETFM ORIGINAL</span>
+          <h3>{storyTitle}</h3>
+          <p>{cliffhanger || 'The truth is still waiting to be heard…'}</p>
           <strong>Hear the complete story to know what happens next.</strong>
         </div>
       )}
@@ -81,22 +84,37 @@ function TrailerVideo({ videoUrl, storyTitle }) {
   )
 }
 
-export default function VideoTrailerPanel({ story, result, accent, customization, isLatest, autoStart = false }) {
-  const [videoUrl, setVideoUrl] = useState('')
-  const [progress, setProgress] = useState(0)
+export default function VideoTrailerPanel({ story, result, accent, customization, isLatest, autoStart = false, initialTrailer, onTrailerChange }) {
+  const [videoUrl, setVideoUrl] = useState(() => initialTrailer?.videoUrl || '')
+  const [progress, setProgress] = useState(() => initialTrailer?.progress || 0)
   const [error, setError] = useState('')
-  const [provider, setProvider] = useState('')
+  const [provider, setProvider] = useState(() => initialTrailer?.provider || '')
   const [isEnabled, setIsEnabled] = useState(false)
-  const [concept, setConcept] = useState(null)
+  const [concept, setConcept] = useState(() => initialTrailer?.concept || null)
   const autoStartedRef = useRef(false)
   const isGenerating = progress > 0 && progress < 100 && !videoUrl
 
-  useEffect(() => () => {
-    if (videoUrl) URL.revokeObjectURL(videoUrl)
-  }, [videoUrl])
-
   useEffect(() => {
-    getVideoTrailerCapability().then(setIsEnabled)
+    let cancelled = false
+    let retryTimer
+    let attempts = 0
+
+    async function checkCapability() {
+      const enabled = await getVideoTrailerCapability()
+      if (cancelled) return
+      if (enabled !== null) {
+        setIsEnabled(enabled)
+        return
+      }
+      attempts += 1
+      if (attempts < 10) retryTimer = window.setTimeout(checkCapability, 1500)
+    }
+
+    checkCapability()
+    return () => {
+      cancelled = true
+      window.clearTimeout(retryTimer)
+    }
   }, [])
 
   async function generate() {
@@ -118,6 +136,12 @@ export default function VideoTrailerPanel({ story, result, accent, customization
       setVideoUrl(videoTrailerContentUrl(job.id))
       setProvider('Sora 2')
       setProgress(100)
+      onTrailerChange?.({
+        videoUrl: videoTrailerContentUrl(job.id),
+        provider: 'Sora 2',
+        progress: 100,
+        concept: job.trailer_concept || null,
+      })
     } catch (err) {
       try {
         setError(`${err.message || 'External generation failed'} Using the local demo renderer instead.`)
@@ -128,9 +152,11 @@ export default function VideoTrailerPanel({ story, result, accent, customization
           accent,
           scenes: trailerScenes(result, concept),
         }, setProgress)
-        setVideoUrl(URL.createObjectURL(blob))
         setProvider('Local fallback')
         setProgress(100)
+        const fallbackUrl = URL.createObjectURL(blob)
+        setVideoUrl(fallbackUrl)
+        onTrailerChange?.({ videoUrl: fallbackUrl, provider: 'Local fallback', progress: 100, concept })
       } catch (fallbackError) {
         setProgress(0)
         setError(fallbackError.message || 'The trailer could not be generated.')
@@ -163,7 +189,11 @@ export default function VideoTrailerPanel({ story, result, accent, customization
       <div className="video-preview-shell">
         {videoUrl ? (
           <>
-            <TrailerVideo videoUrl={videoUrl} storyTitle={story.title} />
+            <TrailerVideo
+              videoUrl={videoUrl}
+              storyTitle={story.title}
+              cliffhanger={concept?.suspense_line || result.teaserDetails?.cliffhanger}
+            />
             <a className="trailer-download" href={videoUrl} download={`${story.id || 'story'}-trailer.${provider === 'Local fallback' ? 'webm' : 'mp4'}`}>Download video</a>
             <span className="trailer-provider">Generated with {provider}</span>
           </>

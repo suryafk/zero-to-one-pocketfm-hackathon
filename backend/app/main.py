@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import adapt, frontend_compat, options, pdf, plot_anchor, teaser, transform, video, voice
+from app.routers import adapt, audio, frontend_compat, options, pdf, plot_anchor, source, teaser, transform, video, voice
 
 settings = get_settings()
 
@@ -41,6 +41,8 @@ app.include_router(frontend_compat.router)
 app.include_router(options.router)
 app.include_router(video.router)
 app.include_router(pdf.router)
+app.include_router(source.router)
+app.include_router(audio.router)
 
 
 @app.get("/health", tags=["Health"])

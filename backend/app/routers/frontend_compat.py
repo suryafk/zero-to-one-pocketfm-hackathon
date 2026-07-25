@@ -1,14 +1,23 @@
 import time
+import hashlib
+import json
+import threading
+from collections import OrderedDict
+from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
 from app.config import get_settings
 from app.schemas import Genre, Region
-from app.services import plot_anchor, teaser as teaser_service, transformer, voice_synth
+from app.services import audio_stream, plot_anchor, teaser as teaser_service, transformer, voice_synth
 from app.services.llm_client import LLMError
 
 router = APIRouter(tags=["Frontend compatibility"])
+_adaptation_cache: OrderedDict[str, dict] = OrderedDict()
+_adaptation_cache_lock = threading.Lock()
+MAX_ADAPTATION_CACHE = 32
 
 # Directory holding full-text story files that back certain catalog entries.
 # frontend_compat.py -> routers -> app -> backend -> <repo root>/test_scripts
@@ -100,9 +109,11 @@ STORY_CATALOG = [
 ]
 
 
-def _resolve_story_text(story: dict) -> str:
+@lru_cache(maxsize=len(STORY_CATALOG))
+def _resolve_catalog_story_text(story_id: str) -> str:
     """Full story text for adaptation: read from the story's txt file when one
     is configured (e.g. The Tell-Tale Heart), otherwise fall back to synopsis."""
+    story = next(item for item in STORY_CATALOG if item["id"] == story_id)
     story_file = story.get("storyFile")
     if story_file:
         path = STORY_TEXT_DIR / story_file
@@ -115,6 +126,30 @@ def _resolve_story_text(story: dict) -> str:
     return story["synopsis"]
 
 
+@lru_cache(maxsize=64)
+def _extract_invariants_once(story_text: str):
+    """Plot context depends only on source text, not customization axes."""
+    return plot_anchor.extract_invariants(story_text)
+
+
+def _adaptation_key(story_text: str, payload: dict) -> str:
+    cache_input = {
+        "story_text": story_text,
+        "genre": payload.get("genre"),
+        "culture": payload.get("culture"),
+        "language": payload.get("language"),
+        "custom_prompt": payload.get("customPrompt"),
+        "voice_style": payload.get("voiceStyle"),
+        "synthesize_voice": bool(payload.get("synthesizeVoice")),
+    }
+    return hashlib.sha256(json.dumps(cache_input, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+# Warm catalog source extraction when the application imports this router.
+for _catalog_story in STORY_CATALOG:
+    _resolve_catalog_story_text(_catalog_story["id"])
+
+
 @router.get("/api/stories")
 def get_stories() -> list[dict]:
     print("Frontend compatibility: GET /api/stories request received.")
@@ -124,10 +159,32 @@ def get_stories() -> list[dict]:
 
 @router.post("/api/adapt")
 def adapt_frontend(payload: dict) -> dict:
-    print(f"Frontend compatibility: POST /api/adapt request received with payload: {payload}")
+    print(
+        "Frontend compatibility: POST /api/adapt request received "
+        f"story_id={payload.get('storyId')} source_characters={len(payload.get('storyText') or '')} "
+        f"genre={payload.get('genre')} culture={payload.get('culture')} language={payload.get('language')}"
+    )
     story_id = payload.get("storyId")
-    story = next((item for item in STORY_CATALOG if item["id"] == story_id), STORY_CATALOG[0])
-    story_text = _resolve_story_text(story)
+    catalog_story = next((item for item in STORY_CATALOG if item["id"] == story_id), None)
+    story = catalog_story or {
+        "id": story_id or "uploaded-story",
+        "title": payload.get("storyTitle") or "Uploaded Story",
+        "originalGenre": payload.get("genre") or "Drama",
+        "originalCulture": payload.get("culture") or "Rural Bhojpuri",
+        "synopsis": payload.get("storyText") or "",
+    }
+    story_text = (payload.get("storyText") or "").strip()
+    if not story_text and catalog_story:
+        story_text = _resolve_catalog_story_text(catalog_story["id"])
+    if len(story_text) < 20:
+        raise HTTPException(status_code=422, detail="The extracted source story is empty or too short.")
+    cache_key = _adaptation_key(story_text, payload)
+    with _adaptation_cache_lock:
+        cached = _adaptation_cache.get(cache_key)
+        if cached:
+            _adaptation_cache.move_to_end(cache_key)
+            print(f"Frontend adaptation cache hit: {cache_key[:12]}")
+            return deepcopy(cached)
 
     genre_value = payload.get("genre") or story["originalGenre"]
     culture_value = payload.get("culture") or story["originalCulture"]
@@ -160,7 +217,7 @@ def adapt_frontend(payload: dict) -> dict:
     try:
         if settings.openai_api_key:
             print("OpenAI key found, calling real adaptation pipeline.")
-            invariants = plot_anchor.extract_invariants(story_text)
+            invariants = deepcopy(_extract_invariants_once(story_text))
             transformed_script = transformer.transform_story(
                 story_text=story_text,
                 genre=genre,
@@ -197,52 +254,32 @@ def adapt_frontend(payload: dict) -> dict:
 
     generation_seconds = round(time.perf_counter() - start, 1)
 
-    voice = None
-    teaser_voice = None
-    if payload.get("synthesizeVoice"):
+    voice_audio_url = None
+    teaser_audio_url = None
+    if payload.get("synthesizeVoice") and settings.tts_provider != "mock":
         try:
-            print(f"Voice synthesis requested for region: {region.value}")
-            voice = voice_synth.synthesize(
-                text=transformed_script,
-                region=region,
-                voice_style=voice_style,
-                language=language_value,
-                genre=genre,
-            )
+            print(f"Parallel streaming voice synthesis requested for region: {region.value}")
             teaser_parts = (
                 (teaser["hook"], teaser["rising_tension"], teaser["cliffhanger"])
                 if isinstance(teaser, dict)
                 else (teaser.hook, teaser.rising_tension, teaser.cliffhanger)
             )
-            teaser_voice = voice_synth.synthesize(
-                text="\n\n".join(teaser_parts),
-                region=region,
-                voice_style=voice_style,
-                language=language_value,
-                genre=genre,
+            full_audio_key = audio_stream.get_or_start_audio(
+                transformed_script, region, language_value, genre, voice_style
             )
+            teaser_audio_key = audio_stream.get_or_start_audio(
+                "\n\n".join(teaser_parts), region, language_value, genre, voice_style
+            )
+            voice_audio_url = f"/api/audio/{full_audio_key}"
+            teaser_audio_url = f"/api/audio/{teaser_audio_key}"
         except Exception as exc:
             print(f"Frontend compatibility: Voice synthesis failed: {exc}")
             raise HTTPException(status_code=502, detail=f"Voice synthesis failed: {exc}") from exc
 
-    voice_audio_url = None
-    if voice:
-        if voice.audio_url:
-            voice_audio_url = voice.audio_url
-        elif voice.audio_base64:
-            voice_audio_url = f"data:audio/{voice.audio_format};base64,{voice.audio_base64}"
-
-    teaser_audio_url = None
-    if teaser_voice:
-        if teaser_voice.audio_url:
-            teaser_audio_url = teaser_voice.audio_url
-        elif teaser_voice.audio_base64:
-            teaser_audio_url = f"data:audio/{teaser_voice.audio_format};base64,{teaser_voice.audio_base64}"
-
     adapted_quote = transformed_script[:280].strip()
 
     print(f"Frontend adaptation complete in {generation_seconds}s.")
-    return {
+    result = {
         "invariants": [
             {"label": "Inciting Incident", "locked": True},
             {"label": "Key Plot Beats", "locked": True},
@@ -270,8 +307,8 @@ def adapt_frontend(payload: dict) -> dict:
             "audioUrl": voice_audio_url,
         },
         "generationSeconds": generation_seconds,
-        "voice": voice,
-        "teaserVoice": teaser_voice,
+        "voice": None,
+        "teaserVoice": None,
         "voiceStyle": voice_style.model_dump(),
         "transformedScript": transformed_script,
         "teaserDetails": {
@@ -280,3 +317,9 @@ def adapt_frontend(payload: dict) -> dict:
             "cliffhanger": teaser["cliffhanger"] if isinstance(teaser, dict) else teaser.cliffhanger,
         },
     }
+    with _adaptation_cache_lock:
+        _adaptation_cache[cache_key] = deepcopy(result)
+        _adaptation_cache.move_to_end(cache_key)
+        while len(_adaptation_cache) > MAX_ADAPTATION_CACHE:
+            _adaptation_cache.popitem(last=False)
+    return result
