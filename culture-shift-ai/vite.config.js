@@ -7,9 +7,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Uncomment once a real backend exists — the app already calls these
-      // paths and falls back to local mock data if they 404 or error out.
-      // '/api': 'http://localhost:8000',
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

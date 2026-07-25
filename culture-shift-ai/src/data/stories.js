@@ -81,6 +81,18 @@ export const stories = [
     quote: 'The city\'s weather machine had started predicting things that had not happened yet.',
     synopsis: 'A repair technician discovers the city\'s climate-control AI is broadcasting warnings from next week.',
   },
+  {
+    id: 'tell-tale-heart',
+    title: 'The Tell-Tale Heart',
+    originalGenre: 'Horror',
+    originalCulture: 'Victorian Gothic',
+    listens: '2.1M',
+    rating: 4.9,
+    episode: 'Full Reading: A Madman\'s Confession',
+    quote: 'It was the beating of the old man\'s heart.',
+    synopsis:
+      'A nervous narrator insists on his sanity while recounting how the pale, filmy eye of an old man drove him to murder — and how a heartbeat betrayed him.',
+  },
 ]
 
 export const genreOptions = ['Horror', 'Comedy', 'Thriller', 'Romance', 'Sci-Fi', 'Drama']

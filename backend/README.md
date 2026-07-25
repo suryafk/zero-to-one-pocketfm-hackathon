@@ -83,9 +83,14 @@ with real voice IDs from your provider.
 
 ## Connecting the frontend demo
 
-The landing page's live demo already calls this backend's `/api/v1/adapt`
-endpoint (see `BACKEND_URL` in `index.html`), which in turn calls OpenAI
-server-side. If you're wiring the demo up from scratch, the call looks like:
+The React app in `../culture-shift-ai` talks to this backend through the
+frontend-compatibility routes `GET /api/stories` and `POST /api/adapt`
+(see `app/routers/frontend_compat.py`). In dev, Vite proxies `/api` to
+`http://localhost:8000` (`culture-shift-ai/vite.config.js`), so running
+`uvicorn` + `npm run dev` wires the two together with no code changes.
+
+You can also call the native pipeline (`/api/v1/adapt`) directly, which in
+turn calls OpenAI server-side. That call looks like:
 
 ```js
 const res = await fetch("http://localhost:8000/api/v1/adapt", {

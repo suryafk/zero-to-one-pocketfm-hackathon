@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { generateAdaptation } from '../api/adaptationApi.js'
 import { usePlayback } from '../hooks/usePlayback.js'
-import { GENRE_ACCENTS } from '../data/stories.js'
+import { GENRE_ACCENTS, genreOptions } from '../data/stories.js'
 import AdaptationControls from './AdaptationControls.jsx'
 import PlotIntegrityPanel from './PlotIntegrityPanel.jsx'
 import IdiomMappingPreview from './IdiomMappingPreview.jsx'
@@ -10,7 +10,7 @@ import { BackIcon } from './Icons.jsx'
 
 export default function Screen2Adaptation({ story, onBack }) {
   const [params, setParams] = useState({
-    genre: story.originalGenre in GENRE_ACCENTS ? story.originalGenre : 'Horror',
+    genre: genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror',
     culture: 'Rural Bhojpuri',
     language: 'Hindi',
     customPrompt: '',
