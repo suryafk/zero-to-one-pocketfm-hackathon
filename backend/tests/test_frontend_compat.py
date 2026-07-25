@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.main import app
-from app.schemas import PlotInvariants, Region, Teaser, VoiceResponse
+from app.schemas import Genre, PlotInvariants, Region, Teaser, VoiceResponse
 
 
 class FrontendCompatTests(unittest.TestCase):
@@ -114,7 +114,7 @@ class FrontendCompatTests(unittest.TestCase):
         with (
             patch("app.routers.adapt.plot_anchor.extract_invariants", return_value=invariants),
             patch("app.routers.adapt.transformer.transform_story", return_value="The adapted full episode."),
-            patch("app.routers.adapt.teaser_service.generate_teaser", return_value=teaser),
+            patch("app.routers.adapt.teaser_service.generate_teaser", return_value=teaser) as generate_teaser,
             patch("app.routers.adapt.voice_synth.synthesize", side_effect=voices) as synthesize,
         ):
             response = self.client.post(
@@ -132,8 +132,31 @@ class FrontendCompatTests(unittest.TestCase):
         data = response.json()
         self.assertEqual(data["voice"]["audio_base64"], "ZnVsbA==")
         self.assertEqual(data["teaser_voice"]["audio_base64"], "dGVhc2Vy")
+        self.assertEqual(generate_teaser.call_args.kwargs["target_language"], "Hindi")
         self.assertEqual(synthesize.call_count, 2)
         self.assertEqual(synthesize.call_args_list[1].kwargs["text"], "The letter came back.\n\nEvery clue points home.\n\nWho sent it?")
+
+    def test_teaser_prompt_keeps_selected_language_separate_from_region(self) -> None:
+        from app.services import teaser as teaser_service
+
+        generated = {
+            "hook": "La carta regresó.",
+            "rising_tension": "Cada pista apunta a casa.",
+            "cliffhanger": "¿Quién la envió?",
+        }
+        with patch("app.services.teaser.call_json", return_value=generated) as call_json:
+            result = teaser_service.generate_teaser(
+                transformed_script="La historia transformada está escrita completamente en español.",
+                genre=Genre.thriller,
+                region=Region.rural_bhojpuri,
+                target_language="Spanish",
+            )
+
+        prompt = call_json.call_args.args[1]
+        self.assertIn("TARGET LANGUAGE: Spanish", prompt)
+        self.assertIn("Write every teaser field only in Spanish", prompt)
+        self.assertIn("must not override or mix with the target language", prompt)
+        self.assertEqual(result.hook, "La carta regresó.")
 
     def test_native_adapt_route_is_registered_at_documented_path(self) -> None:
         route_paths = {
