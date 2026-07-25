@@ -169,7 +169,9 @@ export async function startVideoTrailer({ story, result }) {
       title: story.title,
       genre: result.genre,
       culture: result.culture,
-      story_text: result.transformedScript || result.transcript || story.synopsis || result.adaptedQuote,
+      // Uploaded documents and audio use their original extracted context.
+      // Catalog stories use the complete customized script.
+      story_text: story.sourceText || result.transcript || result.transformedScript || story.synopsis || result.adaptedQuote,
     }),
   })
   if (!response.ok) {

@@ -68,7 +68,9 @@ async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
         "characters, dramatic lighting, smooth camera motion, and three connected visual beats. This must tease the "
         "overall premise without revealing twists, climax, culprit, or ending. "
         f"Overall premise: {concept['premise']}. Visual mood: {concept['mood']}. "
-        f"Opening: {beats[0]}. Escalation: {beats[1]}. Cliffhanger image: {beats[2]}."
+        f"Opening: {beats[0]}. Escalation: {beats[1]}. Cliffhanger image: {beats[2]}. "
+        f"End with the suspense line '{concept['suspense_line']}', followed by a dramatic final title card and "
+        f"voiceover saying exactly: '{concept['call_to_action']}'"
     )
     try:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -86,7 +88,9 @@ async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
         raise HTTPException(status_code=502, detail=f"Could not reach the video provider: {exc}") from exc
     if not response.is_success:
         raise _upstream_error(response)
-    return response.json()
+    job = response.json()
+    job["trailer_concept"] = concept
+    return job
 
 
 @router.get("/{video_id}")

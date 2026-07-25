@@ -583,6 +583,22 @@ button:disabled {
 .trailer-download { display: inline-block; margin-top: 9px; color: var(--green-accent); font-size: 0.78rem; text-decoration: none; }
 .trailer-download:hover { text-decoration: underline; }
 .trailer-provider { float: right; margin-top: 9px; color: var(--text-secondary); font-size: 0.7rem; }
+.trailer-history { display: flex; flex-direction: column; gap: 16px; }
+.saved-trailer-tag { margin-left: 7px; padding: 3px 7px; border: 1px solid var(--green-accent); border-radius: 999px; color: var(--green-accent); font-size: 0.58rem; vertical-align: middle; }
+.trailer-variation { display: block; margin: -2px 0 9px; color: var(--cta-solid); font-size: 0.68rem; }
+.storyboard-preview { position: relative; display: flex; aspect-ratio: 16 / 9; overflow: hidden; flex-direction: column; justify-content: center; padding: 36px; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); border-radius: 10px; background: linear-gradient(135deg, #090b10, color-mix(in srgb, var(--accent) 22%, #14131b)); }
+.storyboard-preview strong { position: relative; max-width: 90%; color: #fff; font-size: clamp(1rem, 2.3vw, 1.7rem); line-height: 1.22; animation: storyboard-enter 500ms ease both; }
+.storyboard-kicker { position: absolute; top: 22px; left: 28px; color: var(--accent); font-size: 0.58rem; font-weight: 800; letter-spacing: 0.07em; }
+.storyboard-caption { position: relative; margin-top: 12px; color: rgba(255,255,255,.7); font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; }
+.storyboard-preview .trailer-progress { position: absolute; right: 28px; bottom: 24px; left: 28px; width: auto; }
+.storyboard-dots { position: absolute; right: 28px; top: 22px; display: flex; gap: 5px; }
+.storyboard-dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.28); }
+.storyboard-dots i.active { background: var(--accent); }
+.storyboard-orb { position: absolute; border-radius: 50%; background: var(--accent); opacity: .12; filter: blur(3px); animation: storyboard-float 5s ease-in-out infinite alternate; }
+.storyboard-orb-one { width: 180px; height: 180px; right: -35px; top: -60px; }
+.storyboard-orb-two { width: 90px; height: 90px; left: 18%; bottom: -35px; animation-delay: -2s; }
+@keyframes storyboard-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes storyboard-float { to { transform: translate(-25px, 20px) scale(1.15); } }
 
 .integrity-panel,
 .idiom-panel {

@@ -30,6 +30,7 @@ export default function Screen2Adaptation({ story, onBack }) {
   const [result, setResult] = useState(null)
   const [resultKey, setResultKey] = useState(null)
   const [generatingMode, setGeneratingMode] = useState(null)
+  const [adaptationRuns, setAdaptationRuns] = useState([])
   const [status, setStatus] = useState('')
   const playback = usePlayback()
 
@@ -61,8 +62,11 @@ export default function Screen2Adaptation({ story, onBack }) {
       if (!cacheHit) {
         setResult(res)
         setResultKey(requestKey)
+        setAdaptationRuns((runs) => [
+          ...runs,
+          { id: `${Date.now()}-${runs.length}`, result: res, params: { ...params } },
+        ])
       }
-
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
       const track = generatedTrack
       const started = await playback.play(track)
@@ -135,9 +139,23 @@ export default function Screen2Adaptation({ story, onBack }) {
           </p>
         )}
 
+        {adaptationRuns.length > 0 && (
+          <div className="trailer-history">
+            {adaptationRuns.map((run, index) => (
+              <VideoTrailerPanel
+                key={run.id}
+                story={story}
+                result={run.result}
+                accent={GENRE_ACCENTS[run.params.genre] || '#30D158'}
+                customization={run.params}
+                isLatest={index === adaptationRuns.length - 1}
+              />
+            ))}
+          </div>
+        )}
+
         {result && (
           <>
-            <VideoTrailerPanel story={story} result={result} accent={accent} />
             <div className="result-grid">
               <PlotIntegrityPanel invariants={result.invariants} consistencyScore={result.consistencyScore} />
               <IdiomMappingPreview mappings={result.idiomMappings} />
