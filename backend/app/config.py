@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # and hackathon demos without TTS credentials. Swap in "elevenlabs" or "azure"
     # once you have keys.
     tts_provider: str = "mock"
+    # "elevenlabs" or "openai" (when uncommented).
+    stt_provider: str = "elevenlabs"
+
     elevenlabs_api_key: str = ""
     azure_speech_key: str = ""
     azure_speech_region: str = ""
