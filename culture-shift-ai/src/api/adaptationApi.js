@@ -47,10 +47,24 @@ export async function fetchStories() {
  * <audio> element (src/hooks/usePlayback.js) — omit it and the player falls
  * back to simulated progress, which is what happens today.
  */
-export async function generateAdaptation({ story, genre, culture, language, customPrompt }) {
+export async function generateAdaptation({
+  story,
+  genre,
+  culture,
+  language,
+  customPrompt,
+  synthesizeVoice = false,
+}) {
   const real = await tryFetch('/api/adapt', {
     method: 'POST',
-    body: JSON.stringify({ storyId: story.id, genre, culture, language, customPrompt }),
+    body: JSON.stringify({
+      storyId: story.id,
+      genre,
+      culture,
+      language,
+      customPrompt,
+      synthesizeVoice,
+    }),
   })
   if (real) return real
 

@@ -28,10 +28,14 @@ export default function Screen2Adaptation({ story, onBack }) {
     setIsGenerating(true)
     setStatus('Locking plot invariants and generating adaptation…')
     try {
-      const res = await generateAdaptation({ story, ...params })
+      const res = await generateAdaptation({
+        story,
+        ...params,
+        synthesizeVoice: mode === 'full',
+      })
       setResult(res)
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
-      const track = mode === 'full' && story.sourceAudioUrl
+      const track = mode === 'full' && !generatedTrack.audioUrl && story.sourceAudioUrl
         ? { ...generatedTrack, label: `Uploaded audio: ${story.title}`, audioUrl: story.sourceAudioUrl }
         : generatedTrack
       playback.play(track)
