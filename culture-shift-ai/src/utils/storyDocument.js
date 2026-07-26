@@ -1,4 +1,5 @@
 const textDecoder = new TextDecoder()
+const bundledStoryTextCache = new Map()
 
 function cleanText(value) {
   return value.replace(/\s+/g, ' ').trim()
@@ -111,6 +112,21 @@ export async function extractStoryText(file) {
   throw new Error('Choose a PDF, TXT, DOCX, DOC, or MP3 story file.')
 }
 
+export async function extractBundledStoryText(sourceDocument, title = 'story') {
+  if (!bundledStoryTextCache.has(sourceDocument)) {
+    const extraction = fetch(sourceDocument).then(async (response) => {
+      if (!response.ok) throw new Error(`Could not load the source document for ${title}.`)
+      const blob = await response.blob()
+      return extractStoryText(new File([blob], `${title}.pdf`, { type: 'application/pdf' }))
+    }).catch((error) => {
+      bundledStoryTextCache.delete(sourceDocument)
+      throw error
+    })
+    bundledStoryTextCache.set(sourceDocument, extraction)
+  }
+  return bundledStoryTextCache.get(sourceDocument)
+}
+
 export function createUploadedStory(file, text) {
   const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded story'
   const excerpt = text.slice(0, 500)
@@ -128,7 +144,7 @@ export function createUploadedStory(file, text) {
   }
 }
 
-export function createProcessingStory(file) {
+export function createProcessingStory(file, processingType = 'document') {
   const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded story'
   return {
     id: `processing-${Date.now()}`,
@@ -139,10 +155,11 @@ export function createProcessingStory(file) {
     quote: 'Reading the story and preparing it for adaptation…',
     isExtracting: true,
     sourceFileName: file.name,
+    processingType,
   }
 }
 
-export function createUploadedAudioStory(file) {
+export function createUploadedAudioStory(file, transcript) {
   const title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded audio story'
   return {
     id: `uploaded-audio-${Date.now()}`,
@@ -152,8 +169,10 @@ export function createUploadedAudioStory(file) {
     listens: 'New',
     rating: 0,
     episode: 'Your uploaded audio story',
-    quote: 'Your uploaded audio is ready to listen to. Choose the adaptation filters, then play the full story.',
-    synopsis: 'An audio story uploaded from your device.',
+    quote: transcript.slice(0, 500),
+    synopsis: transcript.slice(0, 1000),
+    sourceText: transcript,
+    transcript,
     sourceAudioUrl: URL.createObjectURL(file),
     sourceAudioFile: file,
   }

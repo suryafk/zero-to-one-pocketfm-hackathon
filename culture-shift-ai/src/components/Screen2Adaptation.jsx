@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { generateAdaptation } from '../api/adaptationApi.js'
 import { usePlayback } from '../hooks/usePlayback.js'
-import { GENRE_ACCENTS, genreOptions } from '../data/stories.js'
+import { cultureLabel, GENRE_ACCENTS, genreOptions, languagesForCulture } from '../data/stories.js'
 import AdaptationControls from './AdaptationControls.jsx'
 import PlotIntegrityPanel from './PlotIntegrityPanel.jsx'
 import IdiomMappingPreview from './IdiomMappingPreview.jsx'
@@ -20,36 +20,37 @@ function adaptationCacheKey(story, params) {
   })
 }
 
-function originalUploadTrailerRun(story) {
-  if (!story.sourceText) return []
-  const result = {
-    genre: story.originalGenre || 'Drama',
-    culture: story.originalCulture || 'Original upload',
-    language: 'Original',
-    transformedScript: story.sourceText,
-    adaptedQuote: story.quote,
+function initialAdaptationParams(story, initialSession) {
+  const saved = initialSession?.params
+  const culture = saved?.culture || 'Rural Bhojpuri'
+  const allowedLanguages = languagesForCulture(culture)
+
+  return {
+    genre: saved?.genre || (genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror'),
+    culture,
+    language: allowedLanguages.includes(saved?.language) ? saved.language : allowedLanguages[0],
+    customPrompt: saved?.customPrompt || '',
   }
-  return [{
-    id: `original-${story.id}`,
-    result,
-    params: { genre: result.genre, culture: result.culture, language: 'Original' },
-    autoStart: true,
-  }]
 }
 
-export default function Screen2Adaptation({ story, onBack }) {
-  const [params, setParams] = useState({
-    genre: genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror',
-    culture: 'Rural Bhojpuri',
-    language: 'Hindi',
-    customPrompt: '',
-  })
-  const [result, setResult] = useState(null)
-  const [resultKey, setResultKey] = useState(null)
+export default function Screen2Adaptation({ story, onBack, initialSession, onSessionChange }) {
+  const [params, setParams] = useState(() => initialAdaptationParams(story, initialSession))
+  const [result, setResult] = useState(() => initialSession?.result || null)
+  const [resultKey, setResultKey] = useState(() => initialSession?.resultKey || null)
   const [generatingMode, setGeneratingMode] = useState(null)
-  const [adaptationRuns, setAdaptationRuns] = useState(() => originalUploadTrailerRun(story))
-  const [status, setStatus] = useState('')
+  const [adaptationRuns, setAdaptationRuns] = useState(() => initialSession?.adaptationRuns || [])
+  const [status, setStatus] = useState(() => initialSession?.status || '')
   const playback = usePlayback()
+
+  useEffect(() => {
+    if (!story.isExtracting) {
+      onSessionChange(story.id, { params, result, resultKey, adaptationRuns, status })
+    }
+  }, [story.id, story.isExtracting, params, result, resultKey, adaptationRuns, status, onSessionChange])
+
+  const saveTrailerState = useCallback((runId, trailer) => {
+    setAdaptationRuns((runs) => runs.map((run) => run.id === runId ? { ...run, trailer } : run))
+  }, [])
 
   if (story.isExtracting) {
     return (
@@ -58,14 +59,16 @@ export default function Screen2Adaptation({ story, onBack }) {
           <button className="back-link" onClick={onBack}>
             <BackIcon /> Back to Library
           </button>
-          <span className="pocketfm-tag">PocketFM Web</span>
+          <span className="pocketfm-tag">ReVibe</span>
         </div>
         <main className="document-processing" aria-live="polite">
           <div className="processing-spinner" aria-hidden="true" />
           <span className="video-kicker">PREPARING YOUR STORY</span>
           <h2>{story.title}</h2>
-          <p>Extracting readable text from <strong>{story.sourceFileName}</strong>…</p>
-          <small>Scanned PDFs may take longer while OCR reads each page.</small>
+          <p>{story.processingType === 'audio' ? 'Transcribing' : 'Extracting readable text from'} <strong>{story.sourceFileName}</strong>…</p>
+          <small>{story.processingType === 'audio'
+            ? 'The transcript will be reused for every customization, audio track, and trailer.'
+            : 'Scanned PDFs may take longer while OCR reads each page.'}</small>
         </main>
       </div>
     )
@@ -88,7 +91,7 @@ export default function Screen2Adaptation({ story, onBack }) {
     }
 
     try {
-      console.info('[CultureShift] Starting playback flow', { mode, storyId: story.id, cacheHit })
+      console.info('[ReVibe] Starting playback flow', { mode, storyId: story.id, cacheHit })
       const res = cacheHit
         ? result
         : await generateAdaptation({
@@ -105,14 +108,14 @@ export default function Screen2Adaptation({ story, onBack }) {
             id: `${Date.now()}-${runs.length}`,
             result: res,
             params: { ...params },
-            autoStart: Boolean(story.sourceText || story.sourceAudioFile),
+            autoStart: false,
           },
         ])
       }
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
       const track = generatedTrack
       const started = await playback.play(track)
-      console.info('[CultureShift] Playback ready', {
+      console.info('[ReVibe] Playback ready', {
         label: track.label,
         hasAudio: Boolean(track.audioUrl),
         started,
@@ -128,7 +131,7 @@ export default function Screen2Adaptation({ story, onBack }) {
             : `Generated in ${res.generationSeconds}s — ${track.label.toLowerCase()} is ready to play.`,
       )
     } catch (err) {
-      console.error('[CultureShift] Playback flow failed', err)
+      console.error('[ReVibe] Playback flow failed', err)
       setStatus('Something went wrong generating this adaptation. Please try again.')
     } finally {
       if (!cacheHit) setGeneratingMode(null)
@@ -136,7 +139,9 @@ export default function Screen2Adaptation({ story, onBack }) {
   }
 
   const accent = GENRE_ACCENTS[params.genre] || '#30D158'
-  const displayQuote = result ? result.adaptedQuote : story.quote
+  const displayQuote = result
+    ? `${result.teaserDetails.hook} ${result.teaserDetails.risingTension} ${result.teaserDetails.cliffhanger}`
+    : story.quote
 
   return (
     <div className="screen screen-adaptation">
@@ -144,14 +149,14 @@ export default function Screen2Adaptation({ story, onBack }) {
         <button className="back-link" onClick={onBack}>
           <BackIcon /> Back to Library
         </button>
-        <span className="pocketfm-tag">PocketFM Web</span>
+        <span className="pocketfm-tag">ReVibe</span>
       </div>
 
       <main className="adaptation-body">
         <section className="story-detail">
           <div className="story-detail-art" style={{ '--accent': accent }}>
             <span className="pill" style={{ borderColor: accent, color: accent }}>
-              {params.culture.split(' ')[0]} {params.genre}
+              {cultureLabel(params.culture)} · {params.genre}
             </span>
             <span className="story-detail-title-mini">{story.title}</span>
           </div>
@@ -186,12 +191,15 @@ export default function Screen2Adaptation({ story, onBack }) {
             {adaptationRuns.map((run, index) => (
               <VideoTrailerPanel
                 key={run.id}
+                jobKey={`${story.id}:${run.id}`}
                 story={story}
                 result={run.result}
                 accent={GENRE_ACCENTS[run.params.genre] || '#30D158'}
                 customization={run.params}
                 isLatest={index === adaptationRuns.length - 1}
-                autoStart={run.autoStart}
+                autoStart={false}
+                initialTrailer={run.trailer}
+                onTrailerChange={(trailer) => saveTrailerState(run.id, trailer)}
               />
             ))}
           </div>

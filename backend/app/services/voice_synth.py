@@ -30,6 +30,18 @@ REGION_VOICE_MAP: dict[Region, str] = {
     Region.mumbai_tapri: "lbmRnV8aAoM7XNi7APGH",
     Region.seoul_underground: "default",
     Region.rio_favela: "default",
+    Region.delhi: "lbmRnV8aAoM7XNi7APGH",
+    Region.punjab: "lbmRnV8aAoM7XNi7APGH",
+    Region.gujarat: "lbmRnV8aAoM7XNi7APGH",
+    Region.rajasthan: "NhwTI3t2DXME1ogDNGJX",
+    Region.west_bengal: "lbmRnV8aAoM7XNi7APGH",
+    Region.odisha: "lbmRnV8aAoM7XNi7APGH",
+    Region.assam: "lbmRnV8aAoM7XNi7APGH",
+    Region.tamil_nadu: "lbmRnV8aAoM7XNi7APGH",
+    Region.andhra_telangana: "lbmRnV8aAoM7XNi7APGH",
+    Region.karnataka: "lbmRnV8aAoM7XNi7APGH",
+    Region.kerala: "lbmRnV8aAoM7XNi7APGH",
+    Region.jammu_kashmir: "NhwTI3t2DXME1ogDNGJX",
 }
 
 # Example voice ID mapping for OpenAI TTS. The available voices are 'alloy',
@@ -42,6 +54,18 @@ OPENAI_REGION_VOICE_MAP: dict[Region, str] = {
     Region.mumbai_tapri: "echo",
     Region.seoul_underground: "shimmer",
     Region.rio_favela: "nova",
+    Region.delhi: "echo",
+    Region.punjab: "onyx",
+    Region.gujarat: "echo",
+    Region.rajasthan: "onyx",
+    Region.west_bengal: "shimmer",
+    Region.odisha: "alloy",
+    Region.assam: "shimmer",
+    Region.tamil_nadu: "nova",
+    Region.andhra_telangana: "alloy",
+    Region.karnataka: "echo",
+    Region.kerala: "nova",
+    Region.jammu_kashmir: "onyx",
 }
 
 

@@ -5,6 +5,8 @@ backend/.env
 backend/app/static/
 __pycache__/
 *.pyc
+.env*
+backend/.env*
 
 # Windows junk
 *:Zone.Identifier

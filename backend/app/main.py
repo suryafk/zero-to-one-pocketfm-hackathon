@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
-from app.routers import adapt, frontend_compat, options, pdf, plot_anchor, teaser, transform, video, voice
+from app.routers import adapt, audio, frontend_compat, options, pdf, plot_anchor, source, teaser, transform, video, voice
 
 settings = get_settings()
 
@@ -45,6 +45,8 @@ app.include_router(frontend_compat.router)
 app.include_router(options.router)
 app.include_router(video.router)
 app.include_router(pdf.router)
+app.include_router(source.router)
+app.include_router(audio.router)
 
 
 # The Databricks build writes the React bundle here. Keeping API routes above

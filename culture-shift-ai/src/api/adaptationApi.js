@@ -10,7 +10,19 @@ import { runMockAdaptation } from './mockEngine.js'
 // exist, with zero component changes.
 // ---------------------------------------------------------------------------
 
-const BASE_URL = '' // e.g. 'http://localhost:8000' once a backend is deployed
+const DEPLOYED_API_URL = 'https://zero-to-one-pocketfm-hackathon.onrender.com'
+// In development, use Vite's /api proxy so the frontend talks to the backend
+// running on localhost:8000. Deployments can override the default Render API.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : DEPLOYED_API_URL)
+
+// The backend streams generated audio from /api/audio/<id>. API responses use
+// that relative path, but this app is deployed separately on Netlify; leaving
+// it relative makes the browser request Netlify's /api/audio route instead of
+// the Render backend. Preserve data/blob URLs and already-absolute URLs.
+function backendUrl(url) {
+  if (!url || /^(?:data:|blob:|https?:\/\/)/i.test(url)) return url
+  return new URL(url, BASE_URL ? `${BASE_URL}/` : window.location.origin).toString()
+}
 
 function deriveVoiceStyle(genre, culture) {
   const genreStyles = {
@@ -40,7 +52,7 @@ async function tryFetch(path, options) {
 
 async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle }) {
   try {
-    console.info('[CultureShift] Audio adaptation started', {
+    console.info('[ReVibe] Audio adaptation started', {
       fileName: story.sourceAudioFile.name,
       fileBytes: story.sourceAudioFile.size,
       genre,
@@ -56,11 +68,11 @@ async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle 
     body.append('synthesize_voice', 'true')
     Object.entries(voiceStyle).forEach(([key, value]) => body.append(key, value))
 
-    console.info('[CultureShift] Uploading MP3 for transcription and adaptation')
+    console.info('[ReVibe] Uploading MP3 for transcription and adaptation')
     const res = await fetch(`${BASE_URL}/api/v1/adapt`, { method: 'POST', body })
     if (!res.ok) throw new Error(`Audio adaptation responded ${res.status}`)
     const data = await res.json()
-    console.info('[CultureShift] Transcript, plot context, and adapted script received', {
+    console.info('[ReVibe] Transcript, plot context, and adapted script received', {
       transcriptCharacters: data.source_transcript?.length ?? 0,
       adaptedScriptCharacters: data.transformed_script?.length ?? 0,
       voiceProvider: data.voice?.provider,
@@ -93,21 +105,33 @@ async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle 
         cliffhanger: data.teaser?.cliffhanger,
       },
     }
-    console.info('[CultureShift] Adapted audio ready for player', {
+    console.info('[ReVibe] Adapted audio ready for player', {
       fullAudioGenerated: Boolean(audioUrl),
       teaserAudioGenerated: Boolean(teaserAudioUrl),
     })
     return result
   } catch {
-    console.error('[CultureShift] Audio adaptation failed')
+    console.error('[ReVibe] Audio adaptation failed')
     return null
   }
 }
 
 /** GET /api/stories -> Story[] */
 export async function fetchStories() {
-  const real = await tryFetch('/api/stories')
-  return real ?? seedStories
+  // The bundled catalogue contains the real source PDFs and cover artwork.
+  // The backend endpoint can still serve adaptation requests, but must not
+  // replace these entries with its legacy demo catalogue.
+  return seedStories
+}
+
+export async function transcribeAudioSource(file) {
+  const body = new FormData()
+  body.append('audio_file', file)
+  const response = await fetch(`${BASE_URL}/api/source/transcribe`, { method: 'POST', body })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.detail || 'The audio file could not be transcribed.')
+  if (!data.text?.trim()) throw new Error('The audio transcription was empty.')
+  return data.text.trim()
 }
 
 /**
@@ -134,7 +158,7 @@ export async function generateAdaptation({
   customPrompt,
 }) {
   const voiceStyle = deriveVoiceStyle(genre, culture)
-  if (story.sourceAudioFile) {
+  if (story.sourceAudioFile && !story.sourceText) {
     const audioResult = await tryAudioAdaptation({ story, genre, culture, language, voiceStyle })
     if (audioResult) return audioResult
     throw new Error('The audio upload could not be transcribed or synthesized. Check the backend and OpenAI configuration, then try again.')
@@ -144,6 +168,12 @@ export async function generateAdaptation({
     method: 'POST',
     body: JSON.stringify({
       storyId: story.id,
+      storyTitle: story.title,
+      // Bundled PDFs are extracted once in the background. A user can open a
+      // catalogue story before that finishes (and scanned PDFs may need OCR),
+      // so always send usable context instead of letting the backend reject an
+      // otherwise valid story ID. Full extracted text takes precedence.
+      storyText: story.sourceText || story.synopsis || story.quote,
       genre,
       culture,
       language,
@@ -152,7 +182,13 @@ export async function generateAdaptation({
       voiceStyle,
     }),
   })
-  if (real) return real
+  if (real) {
+    return {
+      ...real,
+      teaser: { ...real.teaser, audioUrl: backendUrl(real.teaser?.audioUrl) },
+      fullEpisode: { ...real.fullEpisode, audioUrl: backendUrl(real.fullEpisode?.audioUrl) },
+    }
+  }
 
   // Simulated network + generation latency for the demo (kept short so the
   // UI stays snappy — the *reported* generationSeconds still honors the
@@ -169,6 +205,7 @@ export async function startVideoTrailer({ story, result }) {
       title: story.title,
       genre: result.genre,
       culture: result.culture,
+      language: result.language || 'English',
       // Uploaded documents and audio use their original extracted context.
       // Catalog stories use the complete customized script.
       story_text: story.sourceText || result.transcript || result.transformedScript || story.synopsis || result.adaptedQuote,
@@ -182,10 +219,15 @@ export async function startVideoTrailer({ story, result }) {
 }
 
 export async function getVideoTrailerCapability() {
-  const response = await fetch(`${BASE_URL}/api/video-trailers-enabled`)
-  if (!response.ok) return false
-  const data = await response.json()
-  return data.enabled === true
+  try {
+    const response = await fetch(`${BASE_URL}/api/video-trailers-enabled`)
+    if (!response.ok) return null
+    const data = await response.json()
+    return data.enabled === true
+  } catch {
+    // `null` means temporarily unreachable; `false` means explicitly disabled.
+    return null
+  }
 }
 
 export async function getVideoTrailer(videoId) {

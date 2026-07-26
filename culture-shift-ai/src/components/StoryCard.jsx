@@ -7,7 +7,9 @@ export default function StoryCard({ story, onSelect }) {
     <button className="story-card" style={{ '--accent': accent }} onClick={() => onSelect(story)}>
       <span className="story-card-bar" />
       <span className="story-card-thumb" aria-hidden="true">
-        {story.title
+        {story.thumbnail ? (
+          <img src={story.thumbnail} alt="" />
+        ) : story.title
           .split(' ')
           .map((w) => w[0])
           .join('')
