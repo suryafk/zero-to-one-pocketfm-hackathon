@@ -10,7 +10,7 @@ import { runMockAdaptation } from './mockEngine.js'
 // exist, with zero component changes.
 // ---------------------------------------------------------------------------
 
-const BASE_URL = '' // e.g. 'http://localhost:8000' once a backend is deployed
+const BASE_URL = 'https://zero-to-one-pocketfm-hackathon.onrender.com'
 
 function deriveVoiceStyle(genre, culture) {
   const genreStyles = {
