@@ -1,13 +1,12 @@
 import { SearchIcon, CoinIcon, UserIcon } from './Icons.jsx'
 
-export default function Header({ searchTerm, onSearchChange }) {
+export default function Header({ searchTerm, onSearchChange, onAbout }) {
   return (
     <header className="app-header">
       <div className="brand">
         <span className="brand-dot" aria-hidden="true" />
         <div className="brand-text">
-          <span className="brand-primary">PocketFM</span>
-          <span className="brand-secondary">CultureShift</span>
+          <span className="brand-primary">ReVibe</span>
         </div>
       </div>
 
@@ -23,6 +22,7 @@ export default function Header({ searchTerm, onSearchChange }) {
       </label>
 
       <div className="header-meta">
+        <button className="header-nav-link" type="button" onClick={onAbout}>About Us</button>
         <span className="coin-pill">
           <CoinIcon /> 120 Coins
         </span>

@@ -1,6 +1,6 @@
-# CultureShift AI — Web Prototype
+# ReVibe — Web Prototype
 
-A working React front end for the two-screen PocketFM workflow in the
+A working React front end for the two-screen ReVibe workflow in the
 blueprint: **Story Discovery Library → Story Adaptation & Player**, built to
 the exact color tokens from the Figma spec and wired against a mock version
 of the BRD's adaptation engine so every control actually does something.

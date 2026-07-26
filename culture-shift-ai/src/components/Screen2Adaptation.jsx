@@ -59,7 +59,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
           <button className="back-link" onClick={onBack}>
             <BackIcon /> Back to Library
           </button>
-          <span className="pocketfm-tag">PocketFM Web</span>
+          <span className="pocketfm-tag">ReVibe</span>
         </div>
         <main className="document-processing" aria-live="polite">
           <div className="processing-spinner" aria-hidden="true" />
@@ -91,7 +91,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
     }
 
     try {
-      console.info('[CultureShift] Starting playback flow', { mode, storyId: story.id, cacheHit })
+      console.info('[ReVibe] Starting playback flow', { mode, storyId: story.id, cacheHit })
       const res = cacheHit
         ? result
         : await generateAdaptation({
@@ -115,7 +115,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
       const generatedTrack = mode === 'teaser' ? res.teaser : res.fullEpisode
       const track = generatedTrack
       const started = await playback.play(track)
-      console.info('[CultureShift] Playback ready', {
+      console.info('[ReVibe] Playback ready', {
         label: track.label,
         hasAudio: Boolean(track.audioUrl),
         started,
@@ -131,7 +131,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
             : `Generated in ${res.generationSeconds}s — ${track.label.toLowerCase()} is ready to play.`,
       )
     } catch (err) {
-      console.error('[CultureShift] Playback flow failed', err)
+      console.error('[ReVibe] Playback flow failed', err)
       setStatus('Something went wrong generating this adaptation. Please try again.')
     } finally {
       if (!cacheHit) setGeneratingMode(null)
@@ -149,7 +149,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
         <button className="back-link" onClick={onBack}>
           <BackIcon /> Back to Library
         </button>
-        <span className="pocketfm-tag">PocketFM Web</span>
+        <span className="pocketfm-tag">ReVibe</span>
       </div>
 
       <main className="adaptation-body">

@@ -40,7 +40,7 @@ async function tryFetch(path, options) {
 
 async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle }) {
   try {
-    console.info('[CultureShift] Audio adaptation started', {
+    console.info('[ReVibe] Audio adaptation started', {
       fileName: story.sourceAudioFile.name,
       fileBytes: story.sourceAudioFile.size,
       genre,
@@ -56,11 +56,11 @@ async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle 
     body.append('synthesize_voice', 'true')
     Object.entries(voiceStyle).forEach(([key, value]) => body.append(key, value))
 
-    console.info('[CultureShift] Uploading MP3 for transcription and adaptation')
+    console.info('[ReVibe] Uploading MP3 for transcription and adaptation')
     const res = await fetch(`${BASE_URL}/api/v1/adapt`, { method: 'POST', body })
     if (!res.ok) throw new Error(`Audio adaptation responded ${res.status}`)
     const data = await res.json()
-    console.info('[CultureShift] Transcript, plot context, and adapted script received', {
+    console.info('[ReVibe] Transcript, plot context, and adapted script received', {
       transcriptCharacters: data.source_transcript?.length ?? 0,
       adaptedScriptCharacters: data.transformed_script?.length ?? 0,
       voiceProvider: data.voice?.provider,
@@ -93,13 +93,13 @@ async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle 
         cliffhanger: data.teaser?.cliffhanger,
       },
     }
-    console.info('[CultureShift] Adapted audio ready for player', {
+    console.info('[ReVibe] Adapted audio ready for player', {
       fullAudioGenerated: Boolean(audioUrl),
       teaserAudioGenerated: Boolean(teaserAudioUrl),
     })
     return result
   } catch {
-    console.error('[CultureShift] Audio adaptation failed')
+    console.error('[ReVibe] Audio adaptation failed')
     return null
   }
 }

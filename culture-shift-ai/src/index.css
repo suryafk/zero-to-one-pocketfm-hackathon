@@ -139,6 +139,97 @@ button:disabled {
   color: var(--text-secondary);
 }
 
+.header-nav-link {
+  border: 0;
+  background: transparent;
+  color: #dedee2;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 8px 2px;
+}
+
+.header-nav-link:hover { color: #fff; }
+
+/* ---------- About ReVibe ---------- */
+.about-screen { background: #080809; }
+.about-header {
+  min-height: 72px;
+  padding: 14px clamp(22px, 4vw, 68px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #202024;
+}
+.about-brand,
+.about-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+}
+.about-brand strong { font-size: 1rem; font-weight: 800; }
+.about-back { color: var(--text-secondary); font-size: 0.82rem; }
+.about-back:hover { color: white; }
+.about-main { overflow: hidden; }
+.about-hero {
+  min-height: 590px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80px max(7vw, 32px);
+  background:
+    radial-gradient(circle at 80% 48%, rgba(237, 23, 79, 0.24), transparent 23%),
+    radial-gradient(circle at 78% 50%, rgba(255, 94, 33, 0.09), transparent 40%),
+    linear-gradient(115deg, #080809 45%, #16090d 100%);
+  position: relative;
+}
+.about-hero::after {
+  content: '世界  •  दुनिया  •  MONDE';
+  position: absolute;
+  right: 7vw;
+  color: rgba(255,255,255,.07);
+  font: 800 clamp(2rem, 5vw, 5rem)/1.4 'Fraunces', serif;
+  writing-mode: vertical-rl;
+}
+.about-eyebrow,
+.about-section-label { color: #ff527e; font-size: .72rem; font-weight: 800; letter-spacing: .18em; }
+.about-hero h1 { margin: 20px 0; max-width: 850px; font: 600 clamp(3rem, 6.4vw, 6.4rem)/.98 'Fraunces', serif; letter-spacing: -.045em; }
+.about-hero p { max-width: 680px; margin: 0 0 30px; color: #babac0; font-size: clamp(1rem, 1.5vw, 1.25rem); line-height: 1.65; }
+.about-cta,
+.about-closing button { border: 0; border-radius: 999px; padding: 14px 22px; background: var(--cta-solid); color: white; font-weight: 750; }
+.about-cta span { margin-left: 10px; }
+.about-purpose { display: grid; grid-template-columns: .85fr 1.15fr; gap: 9vw; padding: 110px max(7vw, 32px); border-top: 1px solid #242427; }
+.about-purpose h2,
+.about-vision h2,
+.about-closing h2 { margin: 16px 0 0; font: 600 clamp(2.2rem, 4.5vw, 4.7rem)/1.06 'Fraunces', serif; letter-spacing: -.03em; }
+.about-purpose-text > p { margin: 30px 0; color: #c3c3c8; font-size: 1.12rem; line-height: 1.8; }
+.about-capabilities { display: grid; gap: 14px; color: #eeeef0; }
+.about-capabilities span { display: flex; align-items: center; gap: 11px; }
+.about-capabilities svg, .about-film-icon { color: #ff527e; }
+.about-capabilities .about-film-icon { display: inline-flex; font-size: .75rem; }
+.about-vision { padding: 105px max(7vw, 32px); background: #101012; }
+.about-vision > h2 { max-width: 900px; }
+.about-pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 65px; background: #303034; border: 1px solid #303034; }
+.about-pillar { min-height: 260px; padding: 32px; background: #101012; }
+.about-pillar > span { color: #ff527e; font-size: .75rem; font-weight: 800; }
+.about-pillar h3 { margin: 45px 0 12px; font-size: 1.15rem; }
+.about-pillar p { margin: 0; color: #9999a0; font-size: .9rem; line-height: 1.7; }
+.about-closing { padding: 120px 30px; text-align: center; background: radial-gradient(circle at center, rgba(237,23,79,.2), transparent 45%); }
+.about-closing p { color: #ff7597; text-transform: uppercase; letter-spacing: .16em; font-size: .72rem; font-weight: 800; }
+.about-closing h2 { margin-bottom: 32px; }
+
+@media (max-width: 760px) {
+  .about-hero { min-height: 520px; padding: 70px 24px; }
+  .about-hero::after { display: none; }
+  .about-purpose { grid-template-columns: 1fr; gap: 22px; padding: 75px 24px; }
+  .about-pillars { grid-template-columns: 1fr; }
+  .about-vision { padding: 75px 24px; }
+  .about-pillar { min-height: 220px; }
+}
+
 /* ---------- Library body ---------- */
 .library-body {
   padding: 28px 32px 64px;
@@ -1379,7 +1470,8 @@ textarea:focus-visible {
 
 @media (max-width: 760px) {
   .app-header { gap: 18px; }
-  .header-meta { display: none; }
+  .header-meta { display: flex; }
+  .coin-pill, .user-pill { display: none; }
   .featured-card { min-height: 300px; padding: 40px 28px; }
   .featured-card::before { right: -130px; opacity: 0.55; }
   .featured-card::after { display: none; }
