@@ -169,7 +169,7 @@ class FrontendCompatTests(unittest.TestCase):
         self.assertNotIn("/api/v1/adapt/api/v1/adapt", route_paths)
 
     def test_every_frontend_cultural_flavour_is_supported(self) -> None:
-        from app.schemas import Region
+        from app.schemas import REGION_LANGUAGES, Region
 
         frontend_cultures = {
             "Rural Bhojpuri",
@@ -179,8 +179,35 @@ class FrontendCompatTests(unittest.TestCase):
             "Street Lagos Pidgin",
             "Seoul Underground",
             "Rio Favela",
+            "Delhi NCR",
+            "Punjab",
+            "Gujarat",
+            "Rajasthan",
+            "West Bengal",
+            "Odisha",
+            "Assam",
+            "Tamil Nadu",
+            "Andhra Pradesh / Telangana",
+            "Karnataka",
+            "Kerala",
+            "Jammu & Kashmir",
         }
         self.assertSetEqual(frontend_cultures, {region.value for region in Region})
+        self.assertTrue(all("English" in languages for languages in REGION_LANGUAGES.values()))
+
+    def test_frontend_adapt_rejects_language_not_allowed_for_region(self) -> None:
+        response = self.client.post(
+            "/api/adapt",
+            json={
+                "storyId": "shadow-of-mumbai",
+                "genre": "Thriller",
+                "culture": "Rural Bhojpuri",
+                "language": "Tamil",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("Allowed: Hindi, English", response.json()["detail"])
 
 
 if __name__ == "__main__":

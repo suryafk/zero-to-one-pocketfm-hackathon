@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from app.config import get_settings
-from app.schemas import Genre, Region
+from app.schemas import Genre, Region, REGION_LANGUAGES, language_supported_for_region
 from app.services import audio_stream, plot_anchor, teaser as teaser_service, transformer, voice_synth
 from app.services.llm_client import LLMError
 
@@ -202,6 +202,11 @@ def adapt_frontend(payload: dict) -> dict:
         raise HTTPException(
             status_code=422,
             detail=f"Unsupported Cultural Flavour: {culture_value}",
+        )
+    if not language_supported_for_region(region, language_value):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{language_value} is not supported for {region.value}. Allowed: {', '.join(REGION_LANGUAGES[region])}",
         )
 
     # The frontend derives these seven narration controls and sends them as

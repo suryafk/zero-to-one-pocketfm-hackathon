@@ -2,6 +2,28 @@ import { useEffect, useRef, useState } from 'react'
 import { generateTrailerVideo } from '../utils/trailerGenerator.js'
 import { getVideoTrailer, getVideoTrailerCapability, startVideoTrailer, videoTrailerContentUrl } from '../api/adaptationApi.js'
 import { PlayIcon } from './Icons.jsx'
+import { cultureLabel } from '../data/stories.js'
+
+const TRAILER_CTA = {
+  Hindi: 'आगे क्या होता है जानने के लिए पूरी कहानी सुनें।',
+  English: 'Hear the complete story to know what happens next.',
+  Bhojpuri: 'आगे का होई, ई जाने खातिर पूरा कहानी सुनीं।',
+  Marathi: 'पुढे काय होते हे जाणून घेण्यासाठी संपूर्ण कथा ऐका.',
+  Bengali: 'এরপর কী হয় জানতে সম্পূর্ণ গল্পটি শুনুন।',
+  Tamil: 'அடுத்து என்ன நடக்கிறது என்பதை அறிய முழுக் கதையையும் கேளுங்கள்.',
+  Telugu: 'తర్వాత ఏమి జరుగుతుందో తెలుసుకోవడానికి పూర్తి కథను వినండి.',
+  Kannada: 'ಮುಂದೆ ಏನಾಗುತ್ತದೆ ಎಂಬುದನ್ನು ತಿಳಿಯಲು ಸಂಪೂರ್ಣ ಕಥೆಯನ್ನು ಕೇಳಿ.',
+  Malayalam: 'അടുത്തതായി എന്ത് സംഭവിക്കുമെന്ന് അറിയാൻ മുഴുവൻ കഥയും കേൾക്കൂ.',
+  Punjabi: 'ਅੱਗੇ ਕੀ ਹੁੰਦਾ ਹੈ ਜਾਣਨ ਲਈ ਪੂਰੀ ਕਹਾਣੀ ਸੁਣੋ।',
+  Gujarati: 'આગળ શું થાય છે તે જાણવા માટે સંપૂર્ણ વાર્તા સાંભળો.',
+  Urdu: 'آگے کیا ہوتا ہے جاننے کے لیے پوری کہانی سنیں۔',
+  Odia: 'ଆଗକୁ କଣ ହେବ ଜାଣିବା ପାଇଁ ସମ୍ପୂର୍ଣ୍ଣ କାହାଣୀ ଶୁଣନ୍ତୁ।',
+  Assamese: 'ইয়াৰ পিছত কি হয় জানিবলৈ সম্পূৰ্ণ কাহিনীটো শুনক।',
+  Spanish: 'Escucha la historia completa para descubrir qué sucede después.',
+  Portuguese: 'Ouça a história completa para descobrir o que acontece depois.',
+  Korean: '다음 이야기가 궁금하다면 전체 스토리를 들어보세요.',
+  Yoruba: 'Gbọ́ ìtàn náà ní kíkún láti mọ ohun tó ṣẹlẹ̀ lẹ́yìn náà.',
+}
 
 function trailerScenes(result, concept) {
   if (concept) {
@@ -16,15 +38,111 @@ function trailerScenes(result, concept) {
     return [
       { label: 'The hook', text: details.hook },
       { label: 'The tension rises', text: details.risingTension },
-      { label: details.cliffhanger, text: 'Hear the complete story to know more.' },
+      { label: details.cliffhanger, text: TRAILER_CTA[result.language] || TRAILER_CTA.English },
     ]
   }
   const quote = result.adaptedQuote || 'A familiar story is about to change.'
   return [
     { label: 'The hook', text: quote },
     { label: 'The tension rises', text: `Every choice pulls the truth closer in this ${result.genre} reimagining.` },
-    { label: 'But the final secret was never meant to be heard…', text: 'Hear the complete story to know more.' },
+    { label: 'But the final secret was never meant to be heard…', text: TRAILER_CTA[result.language] || TRAILER_CTA.English },
   ]
+}
+
+// Browser-session job registry. Jobs live independently of React screens, so
+// navigation cannot cancel Sora polling or discard a completed trailer.
+const trailerJobs = new Map()
+
+function updateTrailerJob(jobKey, patch) {
+  const job = trailerJobs.get(jobKey)
+  if (!job) return
+  job.state = { ...job.state, ...patch }
+  job.listeners.forEach((listener) => listener(job.state))
+}
+
+function subscribeToTrailerJob(jobKey, listener, initialState) {
+  if (!trailerJobs.has(jobKey)) {
+    trailerJobs.set(jobKey, { state: initialState, listeners: new Set() })
+  }
+  const job = trailerJobs.get(jobKey)
+  job.listeners.add(listener)
+  listener(job.state)
+  return () => job.listeners.delete(listener)
+}
+
+function startPersistentTrailerJob(jobKey, { story, result, accent }) {
+  const existing = trailerJobs.get(jobKey)
+  if (existing?.state.status === 'running' || existing?.state.status === 'completed') return
+  if (existing) {
+    existing.state = { videoUrl: '', progress: 1, error: '', provider: '', concept: null, status: 'running' }
+    existing.listeners.forEach((listener) => listener(existing.state))
+  } else {
+    trailerJobs.set(jobKey, {
+      state: { videoUrl: '', progress: 1, error: '', provider: '', concept: null, status: 'running' },
+      listeners: new Set(),
+    })
+  }
+
+  async function run() {
+    let concept = null
+    try {
+      const job = await startVideoTrailer({ story, result })
+      concept = job.trailer_concept || null
+      updateTrailerJob(jobKey, { concept })
+      let current = job
+      let transientPollFailures = 0
+      while (!['completed', 'failed'].includes(current.status)) {
+        updateTrailerJob(jobKey, { progress: Math.max(1, current.progress || 1) })
+        await new Promise((resolve) => setTimeout(resolve, 10000))
+        try {
+          current = await getVideoTrailer(job.id)
+          transientPollFailures = 0
+          updateTrailerJob(jobKey, { error: '' })
+        } catch (pollError) {
+          transientPollFailures += 1
+          if (transientPollFailures >= 5) throw pollError
+          updateTrailerJob(jobKey, {
+            error: `Video provider temporarily unavailable. Retrying status check (${transientPollFailures}/5)…`,
+          })
+          await new Promise((resolve) => setTimeout(resolve, 3000 * transientPollFailures))
+        }
+      }
+      if (current.status === 'failed') throw new Error(current.error?.message || 'The external video render failed.')
+      updateTrailerJob(jobKey, {
+        videoUrl: videoTrailerContentUrl(job.id),
+        provider: 'Sora 2',
+        progress: 100,
+        error: '',
+        status: 'completed',
+      })
+    } catch (error) {
+      try {
+        updateTrailerJob(jobKey, { error: `${error.message || 'External generation failed'} Using the local demo renderer instead.` })
+        const blob = await generateTrailerVideo({
+          title: story.title,
+          genre: result.genre,
+          culture: result.culture,
+          accent,
+          scenes: trailerScenes(result, concept),
+        }, (progress) => updateTrailerJob(jobKey, { progress }))
+        updateTrailerJob(jobKey, {
+          videoUrl: URL.createObjectURL(blob),
+          provider: 'Local fallback',
+          progress: 100,
+          concept,
+          status: 'completed',
+        })
+      } catch (fallbackError) {
+        updateTrailerJob(jobKey, {
+          progress: 0,
+          error: fallbackError.message || 'The trailer could not be generated.',
+          status: 'failed',
+        })
+      }
+    }
+  }
+
+  run()
 }
 
 function StoryboardPreview({ scenes, accent, progress }) {
@@ -51,7 +169,7 @@ function StoryboardPreview({ scenes, accent, progress }) {
   )
 }
 
-function TrailerVideo({ videoUrl, storyTitle, cliffhanger }) {
+function TrailerVideo({ videoUrl, storyTitle, cliffhanger, callToAction }) {
   const [showEndCard, setShowEndCard] = useState(false)
 
   function updateEndCard(event) {
@@ -77,14 +195,14 @@ function TrailerVideo({ videoUrl, storyTitle, cliffhanger }) {
           <span>POCKETFM ORIGINAL</span>
           <h3>{storyTitle}</h3>
           <p>{cliffhanger || 'The truth is still waiting to be heard…'}</p>
-          <strong>Hear the complete story to know what happens next.</strong>
+          <strong>{callToAction || 'Hear the complete story to know what happens next.'}</strong>
         </div>
       )}
     </div>
   )
 }
 
-export default function VideoTrailerPanel({ story, result, accent, customization, isLatest, autoStart = false, initialTrailer, onTrailerChange }) {
+export default function VideoTrailerPanel({ jobKey, story, result, accent, customization, isLatest, autoStart = false, initialTrailer, onTrailerChange }) {
   const [videoUrl, setVideoUrl] = useState(() => initialTrailer?.videoUrl || '')
   const [progress, setProgress] = useState(() => initialTrailer?.progress || 0)
   const [error, setError] = useState('')
@@ -93,6 +211,29 @@ export default function VideoTrailerPanel({ story, result, accent, customization
   const [concept, setConcept] = useState(() => initialTrailer?.concept || null)
   const autoStartedRef = useRef(false)
   const isGenerating = progress > 0 && progress < 100 && !videoUrl
+
+  useEffect(() => subscribeToTrailerJob(jobKey, (state) => {
+    setVideoUrl(state.videoUrl)
+    setProgress(state.progress)
+    setError(state.error)
+    setProvider(state.provider)
+    setConcept(state.concept)
+    if (state.status === 'completed') {
+      onTrailerChange?.({
+        videoUrl: state.videoUrl,
+        provider: state.provider,
+        progress: 100,
+        concept: state.concept,
+      })
+    }
+  }, {
+    videoUrl: initialTrailer?.videoUrl || '',
+    progress: initialTrailer?.progress || 0,
+    error: '',
+    provider: initialTrailer?.provider || '',
+    concept: initialTrailer?.concept || null,
+    status: initialTrailer?.videoUrl ? 'completed' : 'idle',
+  }), [jobKey])
 
   useEffect(() => {
     let cancelled = false
@@ -117,51 +258,9 @@ export default function VideoTrailerPanel({ story, result, accent, customization
     }
   }, [])
 
-  async function generate() {
+  function generate() {
     if (!result || videoUrl) return
-    setError('')
-    setProgress(1)
-    if (videoUrl) URL.revokeObjectURL(videoUrl)
-    setVideoUrl('')
-    try {
-      const job = await startVideoTrailer({ story, result })
-      setConcept(job.trailer_concept || null)
-      let current = job
-      while (!['completed', 'failed'].includes(current.status)) {
-        setProgress(Math.max(1, current.progress || 1))
-        await new Promise((resolve) => setTimeout(resolve, 10000))
-        current = await getVideoTrailer(job.id)
-      }
-      if (current.status === 'failed') throw new Error(current.error?.message || 'The external video render failed.')
-      setVideoUrl(videoTrailerContentUrl(job.id))
-      setProvider('Sora 2')
-      setProgress(100)
-      onTrailerChange?.({
-        videoUrl: videoTrailerContentUrl(job.id),
-        provider: 'Sora 2',
-        progress: 100,
-        concept: job.trailer_concept || null,
-      })
-    } catch (err) {
-      try {
-        setError(`${err.message || 'External generation failed'} Using the local demo renderer instead.`)
-        const blob = await generateTrailerVideo({
-          title: story.title,
-          genre: result.genre,
-          culture: result.culture,
-          accent,
-          scenes: trailerScenes(result, concept),
-        }, setProgress)
-        setProvider('Local fallback')
-        setProgress(100)
-        const fallbackUrl = URL.createObjectURL(blob)
-        setVideoUrl(fallbackUrl)
-        onTrailerChange?.({ videoUrl: fallbackUrl, provider: 'Local fallback', progress: 100, concept })
-      } catch (fallbackError) {
-        setProgress(0)
-        setError(fallbackError.message || 'The trailer could not be generated.')
-      }
-    }
+    startPersistentTrailerJob(jobKey, { story, result, accent })
   }
 
   useEffect(() => {
@@ -177,7 +276,7 @@ export default function VideoTrailerPanel({ story, result, accent, customization
       <div className="video-trailer-copy">
         <span className="video-kicker">NEW • AI VIDEO GENERATED FROM YOUR ADAPTATION</span>
         <h4 id="video-trailer-heading">Animated Video Trailer {!isLatest && <span className="saved-trailer-tag">Saved</span>}</h4>
-        <span className="trailer-variation">{customization.genre} • {customization.culture} • {customization.language}</span>
+        <span className="trailer-variation">{customization.genre} • {cultureLabel(customization.culture)} • {customization.language}</span>
         <p>A spoiler-safe concept is extracted from the complete adapted story, then rendered as a 20-second cinematic trailer.</p>
         {!videoUrl && <button className="cta-gradient trailer-generate" onClick={generate} disabled={isGenerating}>
           <PlayIcon /> {isGenerating ? `Rendering video… ${progress}%` : 'Generate Video Trailer'}
@@ -193,6 +292,7 @@ export default function VideoTrailerPanel({ story, result, accent, customization
               videoUrl={videoUrl}
               storyTitle={story.title}
               cliffhanger={concept?.suspense_line || result.teaserDetails?.cliffhanger}
+              callToAction={concept?.call_to_action || TRAILER_CTA[result.language]}
             />
             <a className="trailer-download" href={videoUrl} download={`${story.id || 'story'}-trailer.${provider === 'Local fallback' ? 'webm' : 'mp4'}`}>Download video</a>
             <span className="trailer-provider">Generated with {provider}</span>

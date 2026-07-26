@@ -98,20 +98,75 @@ export const stories = [
 export const genreOptions = ['Horror', 'Comedy', 'Thriller', 'Romance', 'Sci-Fi', 'Drama']
 
 export const cultureOptions = [
-  'Rural Bhojpuri',
-  'Mumbai Tapri',
-  'Texas Country',
-  'South London Grime',
-  'Street Lagos Pidgin',
-  'Seoul Underground',
-  'Rio Favela',
+  { value: 'Rural Bhojpuri', label: 'Uttar Pradesh / Bihar' },
+  { value: 'Mumbai Tapri', label: 'Mumbai' },
+  { value: 'Texas Country', label: 'Texas' },
+  { value: 'South London Grime', label: 'London' },
+  { value: 'Street Lagos Pidgin', label: 'Lagos' },
+  { value: 'Seoul Underground', label: 'Seoul' },
+  { value: 'Rio Favela', label: 'Rio de Janeiro' },
+  { value: 'Delhi NCR', label: 'Delhi NCR' },
+  { value: 'Punjab', label: 'Punjab' },
+  { value: 'Gujarat', label: 'Gujarat' },
+  { value: 'Rajasthan', label: 'Rajasthan' },
+  { value: 'West Bengal', label: 'Bengal' },
+  { value: 'Odisha', label: 'Odisha' },
+  { value: 'Assam', label: 'Assam' },
+  { value: 'Tamil Nadu', label: 'Tamil Nadu' },
+  { value: 'Andhra Pradesh / Telangana', label: 'Andhra Pradesh / Telangana' },
+  { value: 'Karnataka', label: 'Karnataka' },
+  { value: 'Kerala', label: 'Kerala' },
+  { value: 'Jammu & Kashmir', label: 'Jammu & Kashmir' },
 ]
+
+export function cultureLabel(value) {
+  return cultureOptions.find((option) => option.value === value)?.label || value
+}
+
+export const regionLanguages = {
+  'Rural Bhojpuri': ['Hindi', 'English'],
+  'Mumbai Tapri': ['Marathi', 'Hindi', 'English'],
+  'Texas Country': ['English', 'French', 'Spanish', 'Italian'],
+  'South London Grime': ['English', 'French', 'Spanish', 'Italian'],
+  'Street Lagos Pidgin': ['Yoruba', 'English', 'French', 'Spanish', 'Italian'],
+  'Seoul Underground': ['Korean', 'English', 'French', 'Spanish', 'Italian'],
+  'Rio Favela': ['Portuguese', 'English', 'French', 'Spanish', 'Italian'],
+  'Delhi NCR': ['Hindi', 'Urdu', 'English'],
+  Punjab: ['Punjabi', 'Hindi', 'English'],
+  Gujarat: ['Gujarati', 'Hindi', 'English'],
+  Rajasthan: ['Hindi', 'English'],
+  'West Bengal': ['Bengali', 'English'],
+  Odisha: ['Odia', 'English'],
+  Assam: ['Assamese', 'Hindi', 'English'],
+  'Tamil Nadu': ['Tamil', 'English'],
+  'Andhra Pradesh / Telangana': ['Telugu', 'English'],
+  Karnataka: ['Kannada', 'English'],
+  Kerala: ['Malayalam', 'English'],
+  'Jammu & Kashmir': ['Urdu', 'Hindi', 'English'],
+}
+
+export function languagesForCulture(culture) {
+  return regionLanguages[culture] || ['English']
+}
 
 export const languageOptions = [
   'Hindi',
   'English',
   'Bhojpuri',
+  'Marathi',
+  'Bengali',
+  'Tamil',
+  'Telugu',
+  'Kannada',
+  'Malayalam',
+  'Punjabi',
+  'Gujarati',
+  'Urdu',
+  'Odia',
+  'Assamese',
   'Spanish',
+  'French',
+  'Italian',
   'Portuguese',
   'Korean',
   'Yoruba',
