@@ -94,9 +94,10 @@ export function runMockAdaptation({ story, genre, culture, language, customPromp
     teaser: { label: '30s Custom Teaser', durationSeconds: 45, audioUrl: undefined },
     fullEpisode: { label: 'Full Adapted Episode', durationSeconds: 612, audioUrl: undefined },
     teaserDetails: {
-      hook: adaptedQuote,
-      risingTension: `Every clue draws the listener deeper into this ${culture} ${genre.toLowerCase()} world.`,
-      cliffhanger: 'The truth is one heartbeat away — but who will survive hearing it?',
+      hook: story.synopsis.split('. ')[0] + '.',
+      plot_glimpse: `A ${story.originalGenre.toLowerCase()} story reimagined in the heart of ${culture}.`,
+      rising_tension: `As the protagonist delves deeper, the stakes get higher in this ${genre.toLowerCase()} world.`,
+      cliffhanger: `What they uncover will change everything... but at what cost?`,
     },
     generationSeconds: Math.round(generationSeconds * 10) / 10,
   }

@@ -113,6 +113,7 @@ class TransformResponse(BaseModel):
 
 class Teaser(BaseModel):
     hook: str
+    plot_glimpse: str
     rising_tension: str
     cliffhanger: str
 

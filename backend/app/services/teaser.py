@@ -9,17 +9,19 @@ live-demo latency requirement -- keep max_tokens modest to help with that.
 from app.schemas import Genre, Region, Teaser
 from app.services.llm_client import call_json
 
-SYSTEM_PROMPT = """You are the Dynamic Suspense Teaser module of an audio story adaptation engine.
-Given an already genre-, region-, and language-transformed script, find its highest-tension plot point
-and structure a 30-45 second standalone audio trailer in three parts. Preserve the script's plot facts,
-genre, cultural setting, and regional flavor without changing its target language.
+SYSTEM_PROMPT = """You are a master storyteller and suspense artist, crafting irresistible audio trailers. Your task is to create a 30-45 second trailer that gives a glimpse of the story's plot and leaves the listener desperate to hear more.
 
-- hook: a 1-2 sentence intro hook that pulls the listener in immediately
-- rising_tension: 2-3 sentences that escalate stakes toward the turning point
-- cliffhanger: a single unresolved question or moment that demands the listener press play
+You will structure this trailer in four parts, all written in the script's genre, language, and regional voice:
+
+-   **The Hook (1-2 sentences)**: Grab the listener's attention with a powerful opening that establishes the tone.
+-   **The Plot Glimpse (2-3 sentences)**: Briefly introduce the main character and the central conflict. Give a hint of the story's world and what's at stake.
+-   **The Rising Tension (2-3 sentences)**: Escalate the stakes. Build suspense by focusing on a critical moment or a difficult choice.
+-   **The Cliffhanger (1 sentence)**: End with a heart-stopping question or an unresolved moment that demands the listener press play.
+
+This trailer must be a perfect blend of plot and suspense, a captivating performance that respects the story's genre and culture.
 
 Respond with strict JSON only, no markdown fences, no preamble. Shape:
-{"hook": "", "rising_tension": "", "cliffhanger": ""}
+{"hook": "", "plot_glimpse": "", "rising_tension": "", "cliffhanger": ""}
 """
 
 
@@ -30,7 +32,8 @@ def generate_teaser(
     target_language: str = "English",
 ) -> Teaser:
     user_prompt = (
-        f"TRANSFORMED SCRIPT:\n{transformed_script}\n\n"
+        f"THE SCRIPT TO DISTILL:\n{transformed_script}\n\n"
+        f"YOUR CANVAS:\n"
         f"GENRE: {genre.value}\n"
         f"REGION: {region.value}\n"
         f"TARGET LANGUAGE: {target_language}\n\n"
