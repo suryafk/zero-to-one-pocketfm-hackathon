@@ -31,6 +31,45 @@ class Region(str, Enum):
     mumbai_tapri = "Mumbai Tapri"
     seoul_underground = "Seoul Underground"
     rio_favela = "Rio Favela"
+    delhi = "Delhi NCR"
+    punjab = "Punjab"
+    gujarat = "Gujarat"
+    rajasthan = "Rajasthan"
+    west_bengal = "West Bengal"
+    odisha = "Odisha"
+    assam = "Assam"
+    tamil_nadu = "Tamil Nadu"
+    andhra_telangana = "Andhra Pradesh / Telangana"
+    karnataka = "Karnataka"
+    kerala = "Kerala"
+    jammu_kashmir = "Jammu & Kashmir"
+
+
+REGION_LANGUAGES: dict[Region, tuple[str, ...]] = {
+    Region.rural_bhojpuri: ("Hindi", "English"),
+    Region.mumbai_tapri: ("Marathi", "Hindi", "English"),
+    Region.texas_country: ("English", "French", "Spanish", "Italian"),
+    Region.south_london_grime: ("English", "French", "Spanish", "Italian"),
+    Region.street_lagos_pidgin: ("Yoruba", "English", "French", "Spanish", "Italian"),
+    Region.seoul_underground: ("Korean", "English", "French", "Spanish", "Italian"),
+    Region.rio_favela: ("Portuguese", "English", "French", "Spanish", "Italian"),
+    Region.delhi: ("Hindi", "Urdu", "English"),
+    Region.punjab: ("Punjabi", "Hindi", "English"),
+    Region.gujarat: ("Gujarati", "Hindi", "English"),
+    Region.rajasthan: ("Hindi", "English"),
+    Region.west_bengal: ("Bengali", "English"),
+    Region.odisha: ("Odia", "English"),
+    Region.assam: ("Assamese", "Hindi", "English"),
+    Region.tamil_nadu: ("Tamil", "English"),
+    Region.andhra_telangana: ("Telugu", "English"),
+    Region.karnataka: ("Kannada", "English"),
+    Region.kerala: ("Malayalam", "English"),
+    Region.jammu_kashmir: ("Urdu", "Hindi", "English"),
+}
+
+
+def language_supported_for_region(region: Region, language: str) -> bool:
+    return language in REGION_LANGUAGES[region]
 
 
 # ---------- Feature 1: Core Plot Anchor ----------

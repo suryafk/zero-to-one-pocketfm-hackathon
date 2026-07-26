@@ -8,7 +8,7 @@ import time
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from app.schemas import AdaptResponse, Genre, Region
+from app.schemas import AdaptResponse, Genre, Region, REGION_LANGUAGES, language_supported_for_region
 from app.services import (
     plot_anchor,
     speech_to_text,
@@ -40,6 +40,11 @@ async def adapt(
     audio_file: UploadFile | None = File(None),
 ) -> AdaptResponse:
     request_started = time.perf_counter()
+    if not language_supported_for_region(region, language):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{language} is not supported for {region.value}. Allowed: {', '.join(REGION_LANGUAGES[region])}",
+        )
     voice_style = voice_synth.derive_voice_style(
         genre,
         region,

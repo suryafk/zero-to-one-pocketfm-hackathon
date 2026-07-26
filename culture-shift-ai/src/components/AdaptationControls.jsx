@@ -1,4 +1,4 @@
-import { genreOptions, cultureOptions, languageOptions } from '../data/stories.js'
+import { genreOptions, cultureOptions, languagesForCulture } from '../data/stories.js'
 import { BoltIcon, HeadphonesIcon } from './Icons.jsx'
 
 export default function AdaptationControls({
@@ -12,6 +12,7 @@ export default function AdaptationControls({
   generatingMode,
 }) {
   const isGenerating = Boolean(generatingMode)
+  const availableLanguages = languagesForCulture(culture)
   return (
     <section className="controls-panel" aria-label="Adaptation controls and custom modulation">
       <h4>
@@ -31,11 +32,18 @@ export default function AdaptationControls({
         </label>
 
         <label className="control-field">
-          <span>Cultural Flavour</span>
-          <select value={culture} onChange={(e) => onChange({ culture: e.target.value })}>
-            {cultureOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
+          <span>Culture / Region</span>
+          <select value={culture} onChange={(e) => {
+            const nextCulture = e.target.value
+            const allowedLanguages = languagesForCulture(nextCulture)
+            onChange({
+              culture: nextCulture,
+              language: allowedLanguages.includes(language) ? language : allowedLanguages[0],
+            })
+          }}>
+            {cultureOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -44,7 +52,7 @@ export default function AdaptationControls({
         <label className="control-field">
           <span>Language</span>
           <select value={language} onChange={(e) => onChange({ language: e.target.value })}>
-            {languageOptions.map((l) => (
+            {availableLanguages.map((l) => (
               <option key={l} value={l}>
                 {l}
               </option>
