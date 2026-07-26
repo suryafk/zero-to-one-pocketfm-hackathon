@@ -139,7 +139,9 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
   }
 
   const accent = GENRE_ACCENTS[params.genre] || '#30D158'
-  const displayQuote = result ? result.adaptedQuote : story.quote
+  const displayQuote = result
+    ? `${result.teaserDetails.hook} ${result.teaserDetails.risingTension} ${result.teaserDetails.cliffhanger}`
+    : story.quote
 
   return (
     <div className="screen screen-adaptation">
