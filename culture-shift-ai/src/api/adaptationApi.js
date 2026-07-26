@@ -10,7 +10,10 @@ import { runMockAdaptation } from './mockEngine.js'
 // exist, with zero component changes.
 // ---------------------------------------------------------------------------
 
-const BASE_URL = 'https://zero-to-one-pocketfm-hackathon.onrender.com'
+const DEPLOYED_API_URL = 'https://zero-to-one-pocketfm-hackathon.onrender.com'
+// In development, use Vite's /api proxy so the frontend talks to the backend
+// running on localhost:8000. Deployments can override the default Render API.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : DEPLOYED_API_URL)
 
 // The backend streams generated audio from /api/audio/<id>. API responses use
 // that relative path, but this app is deployed separately on Netlify; leaving
@@ -18,7 +21,7 @@ const BASE_URL = 'https://zero-to-one-pocketfm-hackathon.onrender.com'
 // the Render backend. Preserve data/blob URLs and already-absolute URLs.
 function backendUrl(url) {
   if (!url || /^(?:data:|blob:|https?:\/\/)/i.test(url)) return url
-  return new URL(url, `${BASE_URL}/`).toString()
+  return new URL(url, BASE_URL ? `${BASE_URL}/` : window.location.origin).toString()
 }
 
 function deriveVoiceStyle(genre, culture) {
@@ -115,8 +118,10 @@ async function tryAudioAdaptation({ story, genre, culture, language, voiceStyle 
 
 /** GET /api/stories -> Story[] */
 export async function fetchStories() {
-  const real = await tryFetch('/api/stories')
-  return real ?? seedStories
+  // The bundled catalogue contains the real source PDFs and cover artwork.
+  // The backend endpoint can still serve adaptation requests, but must not
+  // replace these entries with its legacy demo catalogue.
+  return seedStories
 }
 
 export async function transcribeAudioSource(file) {
@@ -164,7 +169,11 @@ export async function generateAdaptation({
     body: JSON.stringify({
       storyId: story.id,
       storyTitle: story.title,
-      storyText: story.sourceText,
+      // Bundled PDFs are extracted once in the background. A user can open a
+      // catalogue story before that finishes (and scanned PDFs may need OCR),
+      // so always send usable context instead of letting the backend reject an
+      // otherwise valid story ID. Full extracted text takes precedence.
+      storyText: story.sourceText || story.synopsis || story.quote,
       genre,
       culture,
       language,
