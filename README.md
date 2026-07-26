@@ -157,8 +157,9 @@ app runs for up to 24 hours after start, update, or redeploy before it is
 stopped. See the [Free Edition limitations](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations).
 
 1. In your Databricks workspace, create an App and deploy this repository root.
-   The root `app.yml` starts Uvicorn on the Databricks-provided port, while the
-   root `requirements.txt` installs the backend dependencies.
+   The root `requirements.txt` installs the backend dependencies. The root
+   `package.json` builds the React frontend during deployment, and FastAPI
+   serves it from the app URL.
 2. In the app's **Resources** page, add an App Secret for your `OPENAI_API_KEY`
    and give its resource key the exact name `openai_api_key`.
 3. Deploy. `app.yaml` maps that secret to `OPENAI_API_KEY`, and the backend

@@ -1,5 +1,9 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.routers import adapt, frontend_compat, options, pdf, plot_anchor, teaser, transform, video, voice
@@ -43,13 +47,23 @@ app.include_router(video.router)
 app.include_router(pdf.router)
 
 
+# The Databricks build writes the React bundle here. Keeping API routes above
+# this mount ensures /api/* remains handled by FastAPI.
+frontend_dir = Path(__file__).resolve().parent / "static"
+if frontend_dir.is_dir():
+    app.mount("/assets", StaticFiles(directory=frontend_dir / "assets"), name="frontend-assets")
+
+
 @app.get("/health", tags=["Health"])
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/", tags=["Health"])
-def root() -> dict[str, str]:
+@app.get("/", tags=["Health"], response_model=None)
+def root():
+    index_file = frontend_dir / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
     return {
         "service": "CultureShift AI backend",
         "docs": "/docs",

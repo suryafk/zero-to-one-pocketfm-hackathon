@@ -1,0 +1,7 @@
+{
+  "name": "cultureshift-databricks-app",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm --prefix culture-shift-ai ci && npm --prefix culture-shift-ai run build"
+  }
+}
