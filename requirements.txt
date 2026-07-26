@@ -1,0 +1,2 @@
+# Databricks Apps installs dependencies from the project-root requirements file.
+-r backend/requirements.txt

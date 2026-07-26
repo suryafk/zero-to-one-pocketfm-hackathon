@@ -1,0 +1,16 @@
+# Databricks Apps reads this file from the deployed project root.
+command: ["uvicorn", "app.main:app", "--app-dir", "backend", "--host", "0.0.0.0", "--port", "$DATABRICKS_APP_PORT"]
+
+# In the Databricks App Resources UI, add OPENAI_API_KEY as a Secret with this
+# resource key. Databricks injects it at runtime; no local .env file is used.
+env:
+  - name: OPENAI_API_KEY
+    valueFrom: openai_api_key
+  - name: TTS_PROVIDER
+    value: mock
+  - name: STT_PROVIDER
+    value: openai
+  - name: VIDEO_GENERATION_ENABLED
+    value: "false"
+  - name: CORS_ALLOW_ORIGINS
+    value: "*"
