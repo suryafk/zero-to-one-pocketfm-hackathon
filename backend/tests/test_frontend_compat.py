@@ -22,13 +22,14 @@ class FrontendCompatTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIsInstance(data, list)
-        self.assertTrue(any(item["id"] == "shadow-of-mumbai" for item in data))
+        self.assertEqual(data[0]["id"], "tell-tale-heart")
+        self.assertTrue(data[0]["featured"])
 
     def test_adapt_endpoint_returns_frontend_shape(self) -> None:
         response = self.client.post(
             "/api/adapt",
             json={
-                "storyId": "shadow-of-mumbai",
+                "storyId": "tell-tale-heart",
                 "genre": "Thriller",
                 "culture": "Rural Bhojpuri",
                 "language": "Hindi",
@@ -66,7 +67,7 @@ class FrontendCompatTests(unittest.TestCase):
             response = self.client.post(
                 "/api/adapt",
                 json={
-                    "storyId": "shadow-of-mumbai",
+                    "storyId": "tell-tale-heart",
                     "genre": "Thriller",
                     "culture": "Rural Bhojpuri",
                     "language": "Hindi",
@@ -199,7 +200,7 @@ class FrontendCompatTests(unittest.TestCase):
         response = self.client.post(
             "/api/adapt",
             json={
-                "storyId": "shadow-of-mumbai",
+                "storyId": "tell-tale-heart",
                 "genre": "Thriller",
                 "culture": "Rural Bhojpuri",
                 "language": "Tamil",

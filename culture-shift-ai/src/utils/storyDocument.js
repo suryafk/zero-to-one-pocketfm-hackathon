@@ -1,4 +1,5 @@
 const textDecoder = new TextDecoder()
+const bundledStoryTextCache = new Map()
 
 function cleanText(value) {
   return value.replace(/\s+/g, ' ').trim()
@@ -109,6 +110,21 @@ export async function extractStoryText(file) {
   if (extension === 'pdf') return extractPdf(file)
   if (extension === 'doc') return extractLegacyDoc(file)
   throw new Error('Choose a PDF, TXT, DOCX, DOC, or MP3 story file.')
+}
+
+export async function extractBundledStoryText(sourceDocument, title = 'story') {
+  if (!bundledStoryTextCache.has(sourceDocument)) {
+    const extraction = fetch(sourceDocument).then(async (response) => {
+      if (!response.ok) throw new Error(`Could not load the source document for ${title}.`)
+      const blob = await response.blob()
+      return extractStoryText(new File([blob], `${title}.pdf`, { type: 'application/pdf' }))
+    }).catch((error) => {
+      bundledStoryTextCache.delete(sourceDocument)
+      throw error
+    })
+    bundledStoryTextCache.set(sourceDocument, extraction)
+  }
+  return bundledStoryTextCache.get(sourceDocument)
 }
 
 export function createUploadedStory(file, text) {

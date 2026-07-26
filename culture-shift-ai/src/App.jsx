@@ -3,7 +3,7 @@ import { fetchStories, transcribeAudioSource } from './api/adaptationApi.js'
 import Screen1Library from './components/Screen1Library.jsx'
 import Screen2Adaptation from './components/Screen2Adaptation.jsx'
 import AboutUs from './components/AboutUs.jsx'
-import { createProcessingStory, createUploadedAudioStory, createUploadedStory, extractStoryText } from './utils/storyDocument.js'
+import { createProcessingStory, createUploadedAudioStory, createUploadedStory, extractBundledStoryText, extractStoryText } from './utils/storyDocument.js'
 
 export default function App() {
   const [stories, setStories] = useState([])
@@ -19,6 +19,23 @@ export default function App() {
         ...catalog,
         ...current.filter((story) => story.id.startsWith('uploaded-')),
       ])
+
+      Promise.all(catalog.map(async (story) => {
+        if (!story.sourceDocument || story.sourceText) return story
+        try {
+          const sourceText = await extractBundledStoryText(story.sourceDocument, story.title)
+          return { ...story, sourceText }
+        } catch (error) {
+          console.error(`[ReVibe] Could not prepare ${story.title}`, error)
+          return story
+        }
+      })).then((preparedCatalog) => {
+        setStories((current) => [
+          ...preparedCatalog,
+          ...current.filter((story) => story.id.startsWith('uploaded-')),
+        ])
+        setSelectedStory((current) => preparedCatalog.find((story) => story.id === current?.id) || current)
+      })
     })
   }, [])
 
