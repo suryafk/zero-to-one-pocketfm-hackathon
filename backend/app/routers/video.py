@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import re
 
 import httpx
@@ -12,6 +14,8 @@ from app.services.trailer_concept import extract_trailer_concept
 router = APIRouter(prefix="/api/video-trailers", tags=["Video trailers"])
 OPENAI_VIDEOS_URL = "https://api.openai.com/v1/videos"
 VIDEO_ID_PATTERN = re.compile(r"^video_[A-Za-z0-9]+$")
+logger = logging.getLogger(__name__)
+RETRYABLE_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
 
 
 @router.get("-enabled")
@@ -23,6 +27,7 @@ class VideoTrailerRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     genre: str = Field(..., min_length=1, max_length=50)
     culture: str = Field(..., min_length=1, max_length=100)
+    language: str = Field(default="English", min_length=1, max_length=50)
     story_text: str = Field(..., min_length=20, max_length=50000)
 
 
@@ -51,12 +56,37 @@ def _upstream_error(response: httpx.Response) -> HTTPException:
     return HTTPException(status_code=response.status_code, detail=f"Video provider: {detail[:500]}")
 
 
+async def _get_upstream_with_retry(url: str, timeout: float) -> httpx.Response:
+    """Retry safe GET requests only; never duplicate a billable create POST."""
+    last_response = None
+    last_error = None
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for attempt in range(3):
+            try:
+                response = await client.get(url, headers=_headers())
+                last_response = response
+                if response.is_success or response.status_code not in RETRYABLE_STATUS_CODES:
+                    return response
+                logger.warning(
+                    "Video provider GET retry | url=%s status=%s attempt=%s",
+                    url, response.status_code, attempt + 1,
+                )
+            except httpx.HTTPError as exc:
+                last_error = exc
+                logger.warning("Video provider GET transport retry | url=%s attempt=%s error=%s", url, attempt + 1, exc)
+            if attempt < 2:
+                await asyncio.sleep(1.5 * (attempt + 1))
+    if last_response is not None:
+        return last_response
+    raise HTTPException(status_code=502, detail=f"Could not reach the video provider after retries: {last_error}")
+
+
 @router.post("")
 async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
     _require_enabled()
     try:
         concept = extract_trailer_concept(
-            payload.story_text, payload.title, payload.genre, payload.culture
+            payload.story_text, payload.title, payload.genre, payload.culture, payload.language
         )
     except (LLMError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"Trailer concept extraction failed: {exc}") from exc
@@ -71,7 +101,9 @@ async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
         f"5-11 seconds, opening and escalation: {beats[0]}; {beats[1]}. "
         f"11-16 seconds, unresolved cliffhanger: {beats[2]}; {concept['suspense_line']}. "
         "16-20 seconds, stop the action and hold on a clean dramatic end card. "
-        f"Visual mood: {concept['mood']}. Voiceover for the first 16 seconds: {concept['voiceover_script']}. "
+        f"All narration, character speech, audible words, and end-card text must be in {payload.language}. "
+        f"Do not speak English unless the target language is English. Visual mood: {concept['mood']}. "
+        f"Voiceover for the first 16 seconds, spoken naturally in {payload.language}: {concept['voiceover_script']}. "
         f"During the final four seconds, clearly show and say exactly: '{concept['call_to_action']}'"
     )
     try:
@@ -99,11 +131,7 @@ async def create_video_trailer(payload: VideoTrailerRequest) -> dict:
 async def get_video_trailer(video_id: str) -> dict:
     _require_enabled()
     _validate_video_id(video_id)
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(f"{OPENAI_VIDEOS_URL}/{video_id}", headers=_headers())
-    except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail=f"Could not reach the video provider: {exc}") from exc
+    response = await _get_upstream_with_retry(f"{OPENAI_VIDEOS_URL}/{video_id}", timeout=30)
     if not response.is_success:
         raise _upstream_error(response)
     return response.json()
@@ -113,11 +141,7 @@ async def get_video_trailer(video_id: str) -> dict:
 async def get_video_trailer_content(video_id: str) -> Response:
     _require_enabled()
     _validate_video_id(video_id)
-    try:
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.get(f"{OPENAI_VIDEOS_URL}/{video_id}/content", headers=_headers())
-    except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail=f"Could not download the generated video: {exc}") from exc
+    response = await _get_upstream_with_retry(f"{OPENAI_VIDEOS_URL}/{video_id}/content", timeout=120)
     if not response.is_success:
         raise _upstream_error(response)
     return Response(

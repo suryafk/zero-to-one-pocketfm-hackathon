@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { generateAdaptation } from '../api/adaptationApi.js'
 import { usePlayback } from '../hooks/usePlayback.js'
-import { GENRE_ACCENTS, genreOptions } from '../data/stories.js'
+import { cultureLabel, GENRE_ACCENTS, genreOptions, languagesForCulture } from '../data/stories.js'
 import AdaptationControls from './AdaptationControls.jsx'
 import PlotIntegrityPanel from './PlotIntegrityPanel.jsx'
 import IdiomMappingPreview from './IdiomMappingPreview.jsx'
@@ -20,13 +20,21 @@ function adaptationCacheKey(story, params) {
   })
 }
 
+function initialAdaptationParams(story, initialSession) {
+  const saved = initialSession?.params
+  const culture = saved?.culture || 'Rural Bhojpuri'
+  const allowedLanguages = languagesForCulture(culture)
+
+  return {
+    genre: saved?.genre || (genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror'),
+    culture,
+    language: allowedLanguages.includes(saved?.language) ? saved.language : allowedLanguages[0],
+    customPrompt: saved?.customPrompt || '',
+  }
+}
+
 export default function Screen2Adaptation({ story, onBack, initialSession, onSessionChange }) {
-  const [params, setParams] = useState(() => initialSession?.params || ({
-    genre: genreOptions.includes(story.originalGenre) ? story.originalGenre : 'Horror',
-    culture: 'Rural Bhojpuri',
-    language: 'Hindi',
-    customPrompt: '',
-  }))
+  const [params, setParams] = useState(() => initialAdaptationParams(story, initialSession))
   const [result, setResult] = useState(() => initialSession?.result || null)
   const [resultKey, setResultKey] = useState(() => initialSession?.resultKey || null)
   const [generatingMode, setGeneratingMode] = useState(null)
@@ -146,7 +154,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
         <section className="story-detail">
           <div className="story-detail-art" style={{ '--accent': accent }}>
             <span className="pill" style={{ borderColor: accent, color: accent }}>
-              {params.culture.split(' ')[0]} {params.genre}
+              {cultureLabel(params.culture)} · {params.genre}
             </span>
             <span className="story-detail-title-mini">{story.title}</span>
           </div>
@@ -181,6 +189,7 @@ export default function Screen2Adaptation({ story, onBack, initialSession, onSes
             {adaptationRuns.map((run, index) => (
               <VideoTrailerPanel
                 key={run.id}
+                jobKey={`${story.id}:${run.id}`}
                 story={story}
                 result={run.result}
                 accent={GENRE_ACCENTS[run.params.genre] || '#30D158'}

@@ -181,6 +181,7 @@ export async function startVideoTrailer({ story, result }) {
       title: story.title,
       genre: result.genre,
       culture: result.culture,
+      language: result.language || 'English',
       // Uploaded documents and audio use their original extracted context.
       // Catalog stories use the complete customized script.
       story_text: story.sourceText || result.transcript || result.transformedScript || story.synopsis || result.adaptedQuote,
