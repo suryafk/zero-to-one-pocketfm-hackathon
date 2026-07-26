@@ -12,6 +12,15 @@ import { runMockAdaptation } from './mockEngine.js'
 
 const BASE_URL = 'https://zero-to-one-pocketfm-hackathon.onrender.com'
 
+// The backend streams generated audio from /api/audio/<id>. API responses use
+// that relative path, but this app is deployed separately on Netlify; leaving
+// it relative makes the browser request Netlify's /api/audio route instead of
+// the Render backend. Preserve data/blob URLs and already-absolute URLs.
+function backendUrl(url) {
+  if (!url || /^(?:data:|blob:|https?:\/\/)/i.test(url)) return url
+  return new URL(url, `${BASE_URL}/`).toString()
+}
+
 function deriveVoiceStyle(genre, culture) {
   const genreStyles = {
     Horror: ['wide, from uneasy restraint to sharp fear', 'low, suspenseful rises', 'intimate storyteller', 'measured and deliberate', 'dark and tense', 'occasional quiet whispers at revelations'],
@@ -164,7 +173,13 @@ export async function generateAdaptation({
       voiceStyle,
     }),
   })
-  if (real) return real
+  if (real) {
+    return {
+      ...real,
+      teaser: { ...real.teaser, audioUrl: backendUrl(real.teaser?.audioUrl) },
+      fullEpisode: { ...real.fullEpisode, audioUrl: backendUrl(real.fullEpisode?.audioUrl) },
+    }
+  }
 
   // Simulated network + generation latency for the demo (kept short so the
   // UI stays snappy — the *reported* generationSeconds still honors the
