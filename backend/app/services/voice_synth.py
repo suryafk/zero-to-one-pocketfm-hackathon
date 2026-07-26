@@ -9,7 +9,7 @@ No TTS vendor credentials are required to run the base backend: with
 TTS_PROVIDER=mock (the default), this returns a stub response so the rest
 of the pipeline is fully runnable and testable end-to-end. Flip
 TTS_PROVIDER to "elevenlabs" or "azure" and fill in the matching key in
-.env to go live.
+environment variables to go live.
 """
 import base64
 
@@ -55,7 +55,7 @@ def _mock_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse:
         audio_url=None,
         note=(
             "TTS_PROVIDER=mock: no audio was generated. Set TTS_PROVIDER=elevenlabs "
-            "or TTS_PROVIDER=azure and add the matching API key in .env to synthesize "
+            "or TTS_PROVIDER=azure and set the matching API key environment variable to synthesize "
             "real audio for this text."
         ),
     )
@@ -64,7 +64,7 @@ def _mock_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse:
 def _elevenlabs_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse:
     settings = get_settings()
     if not settings.elevenlabs_api_key:
-        raise RuntimeError("ELEVENLABS_API_KEY is not set in .env")
+        raise RuntimeError("ELEVENLABS_API_KEY is not set in the app environment")
 
     print(f"Calling ElevenLabs TTS API for voice_id: {voice_id}")
     resp = httpx.post(
@@ -91,7 +91,7 @@ def _elevenlabs_synthesize(text: str, region: Region, voice_id: str) -> VoiceRes
 def _azure_synthesize(text: str, region: Region, voice_id: str) -> VoiceResponse:
     settings = get_settings()
     if not settings.azure_speech_key or not settings.azure_speech_region:
-        raise RuntimeError("AZURE_SPEECH_KEY / AZURE_SPEECH_REGION are not set in .env")
+        raise RuntimeError("AZURE_SPEECH_KEY / AZURE_SPEECH_REGION are not set in the app environment")
 
     ssml = f"""<speak version='1.0' xml:lang='en-US'>
 <voice name='{voice_id}'>{text}</voice>
@@ -154,7 +154,7 @@ def _tts_instructions(style: VoiceStyle, language: str) -> str:
 def _openai_synthesize(text: str, region: Region, voice_id: str, instructions: str) -> VoiceResponse:
     settings = get_settings()
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set in .env")
+        raise RuntimeError("OPENAI_API_KEY is not set in the app environment")
 
     client = openai.OpenAI(api_key=settings.openai_api_key)
 

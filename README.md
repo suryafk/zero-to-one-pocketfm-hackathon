@@ -42,7 +42,7 @@ zero-to-one-pocketfm-hackathon/
 ├── backend/                     # FastAPI service (the AI pipeline)
 │   ├── app/
 │   │   ├── main.py              # App, CORS, router registration
-│   │   ├── config.py            # Env-based settings (.env)
+│   │   ├── config.py            # Environment-variable settings (os.getenv)
 │   │   ├── schemas.py           # Pydantic models (Genre/Region enums, requests/responses)
 │   │   ├── routers/
 │   │   │   ├── plot_anchor.py   # F1   → POST /api/v1/plot-anchor
@@ -60,7 +60,7 @@ zero-to-one-pocketfm-hackathon/
 │   │       └── voice_synth.py   # F4 logic (mock / ElevenLabs / Azure)
 │   ├── tests/                   # unittest suite (frontend-compat contract)
 │   ├── requirements.txt
-│   └── .env.example
+│   └── app.yaml                 # Databricks Apps runtime configuration
 │
 ├── culture-shift-ai/            # React + Vite frontend (2-screen web app)
 │   ├── src/
@@ -109,7 +109,7 @@ The frontend and backend were built separately, then integrated:
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env          # then add your OPENAI_API_KEY
+export OPENAI_API_KEY="your-api-key"
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -128,7 +128,12 @@ app uses the real pipeline; with only the frontend, it uses the mock engine.
 
 ---
 
-## Configuration (`backend/.env`)
+## Configuration (environment variables)
+
+The backend reads every setting with `os.getenv`; it never loads `.env`,
+`settings.env`, or any other local settings file. For local development, export
+the variables in your shell. In Databricks Apps, set non-sensitive values in
+`backend/app.yaml` and inject credentials through an App Secret resource.
 
 | Variable | Default | Notes |
 |----------|---------|-------|
@@ -136,7 +141,7 @@ app uses the real pipeline; with only the frontend, it uses the mock engine.
 | `OPENAI_MODEL` | `gpt-4o` | Chat model used for F1/F2/F3/F5. |
 | `OPENAI_VIDEO_MODEL` | `sora-2` | Video model used for trailer rendering. |
 | `VIDEO_GENERATION_ENABLED` | `false` | Opt-in spending guard. Set `true` only for controlled trailer demos. |
-| `TTS_PROVIDER` | `mock` | `mock`, `elevenlabs`, or `azure`. |
+| `TTS_PROVIDER` | `openai` | `mock`, `openai`, `elevenlabs`, or `azure`. |
 | `ELEVENLABS_API_KEY` | — | Required if `TTS_PROVIDER=elevenlabs`. |
 | `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | — | Required if `TTS_PROVIDER=azure`. |
 | `CORS_ALLOW_ORIGINS` | `*` | Comma-separated list, or `*`. |
@@ -144,6 +149,24 @@ app uses the real pipeline; with only the frontend, it uses the mock engine.
 > The LLM provider is **OpenAI** (see `llm_client.py`). The Claude scripts under
 > `test_scripts/` are a separate, standalone model-comparison experiment and are
 > not part of the running application.
+
+## Deploy the backend to Databricks Free Edition
+
+Databricks Free Edition supports up to three Databricks Apps per account; an
+app runs for up to 24 hours after start, update, or redeploy before it is
+stopped. See the [Free Edition limitations](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations).
+
+1. In your Databricks workspace, create an App and upload/deploy the contents
+   of `backend/` as the app project. `app.yaml` starts Uvicorn on the
+   Databricks-provided port.
+2. In the app's **Resources** page, add an App Secret for your `OPENAI_API_KEY`
+   and give its resource key the exact name `openai_api_key`.
+3. Deploy. `app.yaml` maps that secret to `OPENAI_API_KEY`, and the backend
+   reads it at runtime with `os.getenv`—the key is not stored in this repo.
+4. Open `/health` from the app URL to confirm `{"status":"ok"}`.
+
+Databricks recommends connecting secrets through `valueFrom` rather than putting
+secret values in `app.yaml`; see [Databricks Apps environment variables](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/environment-variables).
 
 ---
 

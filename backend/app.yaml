@@ -1,0 +1,22 @@
+command:
+  - uvicorn
+  - app.main:app
+  - --host
+  - 0.0.0.0
+  - --port
+  - ${DATABRICKS_APP_PORT}
+
+# Configure OPENAI_API_KEY in the Databricks App's Resources UI as a Secret
+# with resource key `openai_api_key`, then expose it here. Never add its value
+# to this file.
+env:
+  - name: OPENAI_API_KEY
+    valueFrom: openai_api_key
+  - name: TTS_PROVIDER
+    value: mock
+  - name: STT_PROVIDER
+    value: openai
+  - name: VIDEO_GENERATION_ENABLED
+    value: "false"
+  - name: CORS_ALLOW_ORIGINS
+    value: "*"

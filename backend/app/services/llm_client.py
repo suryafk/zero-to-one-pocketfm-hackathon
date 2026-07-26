@@ -28,7 +28,7 @@ def _client() -> openai.OpenAI:
     if not api_key or api_key in {"sk-...", "your-api-key-here"}:
         raise LLMError(
             "OPENAI_API_KEY is missing or still a placeholder. "
-            "Add a valid key to backend/.env and restart the server."
+            "Set OPENAI_API_KEY in the app environment and restart the server."
         )
     return openai.OpenAI(api_key=api_key)
 

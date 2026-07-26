@@ -20,7 +20,7 @@ def _elevenlabs_transcribe(audio_file: UploadFile) -> str:
     """Calls the ElevenLabs Speech-to-Text API."""
     settings = get_settings()
     if not settings.elevenlabs_api_key:
-        raise STTError("ELEVENLABS_API_KEY is not set in .env")
+        raise STTError("ELEVENLABS_API_KEY is not set in the app environment")
 
     files = {"file": (audio_file.filename, audio_file.file, audio_file.content_type)}
 
@@ -52,7 +52,7 @@ def _openai_transcribe(audio_file: UploadFile) -> str:
     """Transcribe a completed uploaded audio file with OpenAI Audio API."""
     settings = get_settings()
     if not settings.openai_api_key:
-        raise STTError("OPENAI_API_KEY is not set in .env")
+        raise STTError("OPENAI_API_KEY is not set in the app environment")
 
     try:
         # UploadFile may already have been inspected, so make sure the SDK

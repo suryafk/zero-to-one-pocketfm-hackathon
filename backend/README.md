@@ -15,7 +15,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env             # then add your OPENAI_API_KEY
+export OPENAI_API_KEY="your-api-key"
 ```
 
 ## Run
@@ -77,7 +77,7 @@ TTS credentials — `/api/v1/voice` and `/api/v1/adapt?synthesize_voice=true` wi
 return a stub response with `audio_base64: null` and a note explaining why.
 
 To synthesize with OpenAI, set `TTS_PROVIDER=openai`,
-`OPENAI_TTS_MODEL=gpt-4o-mini-tts`, and `OPENAI_API_KEY` in `.env`. The OpenAI
+`OPENAI_TTS_MODEL=gpt-4o-mini-tts`, and `OPENAI_API_KEY` in the app environment. The OpenAI
 region → built-in voice mapping lives in `OPENAI_REGION_VOICE_MAP` in
 `app/services/voice_synth.py`.
 
@@ -94,7 +94,7 @@ OpenAI transcription uploads must be 25 MB or smaller.
 ## Video trailer spending guard
 
 Video generation is disabled by default. Set `VIDEO_GENERATION_ENABLED=true`
-in `backend/.env` and restart the API only when you are ready to run a
+in the app environment and restart the API only when you are ready to run a
 controlled demo. When disabled, the video option is hidden in the frontend and
 the backend rejects video render requests before making any billable API call.
 
@@ -125,7 +125,7 @@ const data = await res.json();
 backend/
   app/
     main.py              # FastAPI app, CORS, router registration
-    config.py             # env-based settings
+    config.py             # os.getenv-based settings
     schemas.py            # Pydantic request/response models
     routers/
       plot_anchor.py      # F1
@@ -141,7 +141,7 @@ backend/
       teaser.py                # F5 logic
       voice_synth.py            # F4 logic (mock / ElevenLabs / Azure)
   requirements.txt
-  .env.example
+  app.yaml                # Databricks Apps runtime configuration
 ```
 
 ## Next steps for production
