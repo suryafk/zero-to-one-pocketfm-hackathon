@@ -46,7 +46,7 @@ function drawFrame(ctx, trailer, elapsed) {
 
   ctx.fillStyle = accent
   ctx.font = '700 18px system-ui, sans-serif'
-  ctx.fillText(`POCKETFM • ${trailer.genre.toUpperCase()} • ${trailer.culture.toUpperCase()}`, 70, 72)
+  ctx.fillText(`REVIBE • ${trailer.genre.toUpperCase()} • ${trailer.culture.toUpperCase()}`, 70, 72)
 
   ctx.fillStyle = '#ffffff'
   ctx.font = '800 54px system-ui, sans-serif'

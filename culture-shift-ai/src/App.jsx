@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchStories, transcribeAudioSource } from './api/adaptationApi.js'
 import Screen1Library from './components/Screen1Library.jsx'
 import Screen2Adaptation from './components/Screen2Adaptation.jsx'
+import AboutUs from './components/AboutUs.jsx'
 import { createProcessingStory, createUploadedAudioStory, createUploadedStory, extractStoryText } from './utils/storyDocument.js'
 
 export default function App() {
   const [stories, setStories] = useState([])
   const [selectedStory, setSelectedStory] = useState(null)
+  const [page, setPage] = useState('library')
   const [uploadError, setUploadError] = useState('')
   const [storySessions, setStorySessions] = useState({})
   const uploadRequest = useRef(0)
@@ -39,6 +41,10 @@ export default function App() {
     )
   }
 
+  if (page === 'about') {
+    return <AboutUs onBack={() => setPage('library')} />
+  }
+
   async function uploadStory(file) {
     const requestId = ++uploadRequest.current
     setUploadError('')
@@ -69,5 +75,5 @@ export default function App() {
     }
   }
 
-  return <Screen1Library stories={stories} onSelectStory={setSelectedStory} onUploadStory={uploadStory} uploadError={uploadError} />
+  return <Screen1Library stories={stories} onSelectStory={setSelectedStory} onUploadStory={uploadStory} uploadError={uploadError} onAbout={() => setPage('about')} />
 }

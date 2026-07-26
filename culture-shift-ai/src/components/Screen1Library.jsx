@@ -3,7 +3,7 @@ import Header from './Header.jsx'
 import FeaturedOriginal from './FeaturedOriginal.jsx'
 import StoryCard from './StoryCard.jsx'
 
-export default function Screen1Library({ stories, onSelectStory, onUploadStory, uploadError }) {
+export default function Screen1Library({ stories, onSelectStory, onUploadStory, uploadError, onAbout }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [genreFilter, setGenreFilter] = useState('All')
 
@@ -25,7 +25,7 @@ export default function Screen1Library({ stories, onSelectStory, onUploadStory, 
 
   return (
     <div className="screen screen-library">
-      <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+      <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} onAbout={onAbout} />
 
       <main className="library-body">
         <section className="upload-story-card" aria-labelledby="upload-story-heading">

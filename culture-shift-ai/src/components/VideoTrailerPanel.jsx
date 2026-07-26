@@ -192,7 +192,7 @@ function TrailerVideo({ videoUrl, storyTitle, cliffhanger, callToAction }) {
       {showEndCard && (
         <div className="trailer-end-card">
           <div className="trailer-end-card-glow" aria-hidden="true" />
-          <span>POCKETFM ORIGINAL</span>
+          <span>REVIBE ORIGINAL</span>
           <h3>{storyTitle}</h3>
           <p>{cliffhanger || 'The truth is still waiting to be heard…'}</p>
           <strong>{callToAction || 'Hear the complete story to know what happens next.'}</strong>
